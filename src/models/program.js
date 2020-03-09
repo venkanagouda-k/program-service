@@ -12,6 +12,10 @@ module.exports = function(sequelize, DataTypes) {
     description: {
       type: DataTypes.TEXT
     },
+    type: {
+      type: DataTypes.ENUM("public", "private"),
+      allowNull: false
+    },
     default_roles: {
       type: DataTypes.ARRAY(DataTypes.TEXT)
     },
@@ -33,17 +37,19 @@ module.exports = function(sequelize, DataTypes) {
     content_submission_enddate: {
       type: DataTypes.DATE
     },
-    image_path: {
+    image: {
       type: DataTypes.STRING
     },
     status: {
-      type: DataTypes.STRING
+      type: DataTypes.ENUM("Draft", "Live"),
+      allowNull: false
     },
     slug: {
       type: DataTypes.STRING
     },
     config: {
-      type: DataTypes.TEXT
+      type: DataTypes.TEXT,
+      allowNull: false
     },
     createdby: {
       type: DataTypes.STRING
@@ -59,6 +65,13 @@ module.exports = function(sequelize, DataTypes) {
     },
     rootorg_id: {
       type: DataTypes.STRING
+    },
+    channel: {
+      type: DataTypes.TEXT,
+      defaultValue: 'DIKSHA'
+    },
+    template_id: {
+      type: DataTypes.TEXT
     }
   }, {
       timestamps: false,
