@@ -189,7 +189,48 @@ function programList(req, response) {
 }
 
 function programAddParticipant(req, response) {
-  console.log(req)
+  var data = req.body
+  var rspObj = req.rspObj
+  if (!data.request || !data.request.program_id || !data.request.user_id) {
+    rspObj.errCode = programMessages.READ.MISSING_CODE
+    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  const insertObj = req.body.request;
+  
+  model.nomination.create(insertObj).then(res => {
+    console.log("nomination successfully written to DB", res);
+    return response.status(200).send(successResponse({
+      apiId: 'api.nomination.add',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: {
+        'program_id': insertObj.program_id,
+        'user_id': insertObj.user_id,
+        'id': res.dataValues.id
+      }
+    }));
+  }).catch(err => {
+    console.log("Error adding nomination to db", err);
+    return response.status(400).send(errorResponse({
+      apiId: 'api.nomination.add',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_CREATE_PROGRAM',
+      result: err
+    }));
+  });
 }
 
 function programUpdateParticipant(req, response) {
