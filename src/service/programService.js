@@ -9,11 +9,28 @@ const uuid = require("uuid/v1")
 
 
 async function getProgram(req, response) {
-  let programDetails;
-  console.log(req.params)
-  programDBModel.instance.program.findOneAsync(req.params, {raw: true})
+  var data = req.body
+  var rspObj = req.rspObj
+  if (!data.request || !data.request.rootorg_id) {
+    rspObj.errCode = programMessages.READ.MISSING_CODE
+    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request rootorg_id',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  model.program.findAll({
+    where: { rootorg_id:  data.request.rootorg_id }
+  })
   .then(function(res) {
-    console.log(res);
+    // console.log(res);
     return response.status(200).send(successResponse({
       apiId: 'api.program.read',
       ver: '1.0',
@@ -23,7 +40,13 @@ async function getProgram(req, response) {
     }))
   })
   .catch(function(err) {
-      console.log(err);
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.read',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_READ_PROGRAM',
+      result: err
+    }));
   });
 }
 
