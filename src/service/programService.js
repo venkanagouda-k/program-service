@@ -7,47 +7,8 @@ const uuid = require("uuid/v1")
   programMessages = messageUtils.PROGRAM
   model = require('../models')
 
-
-async function getProgram(req, response) {
-  var data = req.body
-  var rspObj = req.rspObj
-  if (!data.request || !data.request.rootorg_id) {
-    rspObj.errCode = programMessages.READ.MISSING_CODE
-    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
-    rspObj.responseCode = responseCode.CLIENT_ERROR
-    logger.error({
-      msg: 'Error due to missing request or request rootorg_id',
-      err: {
-        errCode: rspObj.errCode,
-        errMsg: rspObj.errMsg,
-        responseCode: rspObj.responseCode
-      },
-      additionalInfo: { data }
-    }, req)
-    return response.status(400).send(errorResponse(rspObj))
-  }
-  model.program.findAll({
-    where: { rootorg_id:  data.request.rootorg_id }
-  })
-  .then(function(res) {
-    // console.log(res);
-    return response.status(200).send(successResponse({
-      apiId: 'api.program.read',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'OK',
-      result: res
-    }))
-  })
-  .catch(function(err) {
-    return response.status(400).send(errorResponse({
-      apiId: 'api.program.read',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'ERR_READ_PROGRAM',
-      result: err
-    }));
-  });
+ function getProgram(req, response) {
+  
 }
 
 async function createProgram(req, response) {
@@ -186,7 +147,45 @@ async function deleteProgram(req, response) {
 }
 
 function programList(req, response) {
-  console.log(req)
+  var data = req.body
+  var rspObj = req.rspObj
+  if (!data.request || !data.request.rootorg_id) {
+    rspObj.errCode = programMessages.READ.MISSING_CODE
+    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request rootorg_id',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  model.program.findAll({
+    where: { rootorg_id:  data.request.rootorg_id }
+  })
+  .then(function(res) {
+    // console.log(res);
+    return response.status(200).send(successResponse({
+      apiId: 'api.program.list',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: res
+    }))
+  })
+  .catch(function(err) {
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.list',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_LIST_PROGRAM',
+      result: err
+    }));
+  });
 }
 
 function programAddParticipant(req, response) {
