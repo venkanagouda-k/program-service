@@ -357,17 +357,31 @@ function getNominationsList(req, response) {
     order: [
       ['updatedon', 'DESC']
     ]
-  })
-  .then(function(res) {
-    return response.status(200).send(successResponse({
-      apiId: 'api.nomination.list',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'OK',
-      result: res
-    }))
-  })
-  .catch(function(err) {
+  }).then(function(res) {
+    return res;
+  }).then(function(result){
+    var userList = [];
+    _.forEach(result, function(data){
+      userList.push(data.user_id);
+    })
+    getUsersDetails(req, userList).then(function(userRes) {
+      _.forEach(result, function(data, index){
+        var userInfo = _.find(userRes.data.result.response.content, function(d){
+          return d.id === data.user_id;
+        });
+        if(userInfo){
+          result[index].dataValues.userData = userInfo;
+        }
+      });
+      return response.status(200).send(successResponse({
+        apiId: 'api.nomination.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'OK',
+        result: result
+      }))
+    }); 
+  }).catch(function(err) {
     return response.status(400).send(errorResponse({
       apiId: 'api.nomination.list',
       ver: '1.0',
@@ -375,6 +389,23 @@ function getNominationsList(req, response) {
       responseCode: 'ERR_NOMINATION_LIST',
       result: err
     }));
+  });
+}
+
+function getUsersDetails(req, userList){
+  const url = `${envVariables.baseURL}/api/user/v1/search`;
+  const reqData = {
+    "request": {
+      "filters": {
+        "id": userList
+      }
+    }
+  }
+  return axios({
+    method: 'post',
+    url: url,
+    headers: req.headers,
+    data: reqData
   });
 }
 
