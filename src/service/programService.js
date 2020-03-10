@@ -8,7 +8,27 @@ const uuid = require("uuid/v1")
   model = require('../models')
 
  function getProgram(req, response) {
-  
+  model.program.findOne({
+    where: { program_id:  req.params.program_id }
+  })
+  .then(function(res) {
+    return response.status(200).send(successResponse({
+      apiId: 'api.program.read',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: res
+    }))
+  })
+  .catch(function(err) {
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.read',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_READ_PROGRAM',
+      result: err
+    }));
+  });
 }
 
 async function createProgram(req, response) {
