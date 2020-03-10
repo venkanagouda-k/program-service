@@ -11,7 +11,7 @@ const axios = require('axios');
 const envVariables = require('../envVariables');
 
 
- function getProgram(req, response) {
+function getProgram(req, response) {
   model.program.findOne({
     where: { program_id:  req.params.program_id }
   })
@@ -265,7 +265,7 @@ function addNomination(req, response) {
       apiId: 'api.nomination.add',
       ver: '1.0',
       msgid: uuid(),
-      responseCode: 'ERR_CREATE_PROGRAM',
+      responseCode: 'ERR_NOMINATION_ADD',
       result: err
     }));
   });
@@ -277,6 +277,52 @@ function updateNomination(req, response) {
 
 function removeNomination(req, response) {
   console.log(req)
+}
+
+function getNominationsList(req, response) {
+  var data = req.body
+  var rspObj = req.rspObj
+  if (!data.request || !data.request.program_id) {
+    rspObj.errCode = programMessages.READ.MISSING_CODE
+    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  const insertObj = req.body.request;
+
+  model.nomination.findAll({
+    where: {...data.request},
+    order: [
+      ['updatedon', 'DESC']
+    ]
+  })
+  .then(function(res) {
+    return response.status(200).send(successResponse({
+      apiId: 'api.nomination.list',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: res
+    }))
+  })
+  .catch(function(err) {
+    return response.status(400).send(errorResponse({
+      apiId: 'api.nomination.list',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_NOMINATION_LIST',
+      result: err
+    }));
+  });
 }
 
 function programSearch(req, response) {
