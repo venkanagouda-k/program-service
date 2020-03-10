@@ -357,14 +357,13 @@ function getNominationsList(req, response) {
     order: [
       ['updatedon', 'DESC']
     ]
-  }).then(function(res) {
-    return res;
-  }).then(function(result){
+  }).then(async function(result){
+   try {
     var userList = [];
     _.forEach(result, function(data){
       userList.push(data.user_id);
     })
-    getUsersDetails(req, userList).then(function(userRes) {
+   userRes = await getUsersDetails(req, userList);
       _.forEach(result, function(data, index){
         var userInfo = _.find(userRes.data.result.response.content, function(d){
           return d.id === data.user_id;
@@ -380,7 +379,17 @@ function getNominationsList(req, response) {
         responseCode: 'OK',
         result: result
       }))
-    }); 
+     
+  }
+  catch(err) {
+    return response.status(400).send(errorResponse({
+      apiId: 'api.nomination.list',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_NOMINATION_LIST',
+      result: err
+    }));
+  }
   }).catch(function(err) {
     return response.status(400).send(errorResponse({
       apiId: 'api.nomination.list',
@@ -561,3 +570,4 @@ module.exports.programSearchAPI = programSearch
 module.exports.updateNominationAPI = updateNomination
 module.exports.removeNominationAPI = removeNomination
 module.exports.programUpdateCollectionAPI = programUpdateCollection
+module.exports.nominationsListAPI = getNominationsList
