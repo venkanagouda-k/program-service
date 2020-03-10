@@ -185,7 +185,7 @@ async function deleteProgram(req, response) {
 function programList(req, response) {
   var data = req.body
   var rspObj = req.rspObj
-  if (!data.request || !data.request.rootorg_id) {
+  if (!data.request) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
