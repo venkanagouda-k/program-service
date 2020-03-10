@@ -83,15 +83,15 @@ async function createProgram(req, response) {
   });
 }
 
-async function updateProgram(req, response) {
+function updateProgram(req, response) {
   var data = req.body
   var rspObj = req.rspObj
-  if (!data.request || !data.request.program_id || !data.request.config ) {
+  if (!data.request || !data.request.program_id ) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
     logger.error({
-      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      msg: 'Error due to missing request or request program_id',
       err: {
         errCode: rspObj.errCode,
         errMsg: rspObj.errMsg,
@@ -101,24 +101,38 @@ async function updateProgram(req, response) {
     }, req)
     return response.status(400).send(errorResponse(rspObj))
   }
-  const updateQuery = { program_id: req.body.request.program_id };
+  const updateQuery = {
+    where: { program_id:  data.request.program_id }
+  };
   const updateValue = req.body.request;
+  if (!updateValue.updatedon) {
+    updateValue.updatedon = new Date();
+  }
   if(updateValue.config){
     updateValue.config = JSON.stringify(updateValue.config);
   }
-  delete updateValue.program_id;
-  programDBModel.instance.program.updateAsync(updateQuery, updateValue, {if_not_exist: true}).then(resData => {
+  model.program.update(updateValue, updateQuery).then(resData => {
+    if (_.isArray(resData) && !resData[0]) {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.program.update',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_UPDATE_PROGRAM',
+        result: {
+          'program_id': 'Not Found'
+        }
+      }));
+    }
     return response.status(200).send(successResponse({
         apiId: 'api.program.update',
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'OK',
         result: {
-          'program_id': updateQuery.program_id
+          'program_id': updateQuery.where.program_id
         }
       }));
   }).catch(error => {
-    console.log('ERRor in updateAsync ', error);
     return response.status(400).send(errorResponse({
       apiId: 'api.program.update',
       ver: '1.0',
@@ -189,7 +203,10 @@ function programList(req, response) {
     return response.status(400).send(errorResponse(rspObj))
   }
   model.program.findAll({
-    where: data.request
+    where: {...data.request},
+    order: [
+      ['updatedon', 'DESC']
+  ]
   })
   .then(function(res) {
     return response.status(200).send(successResponse({
