@@ -7,8 +7,28 @@ const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
 const model = require('../models');
 
-function getProgram(req, response) {
-
+ function getProgram(req, response) {
+  model.program.findOne({
+    where: { program_id:  req.params.program_id }
+  })
+  .then(function(res) {
+    return response.status(200).send(successResponse({
+      apiId: 'api.program.read',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: res
+    }))
+  })
+  .catch(function(err) {
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.read',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_READ_PROGRAM',
+      result: err
+    }));
+  });
 }
 
 async function createProgram(req, response) {
@@ -188,7 +208,7 @@ function programList(req, response) {
   });
 }
 
-function programAddParticipant(req, response) {
+function addNomination(req, response) {
   var data = req.body
   var rspObj = req.rspObj
   if (!data.request || !data.request.program_id || !data.request.user_id) {
@@ -233,7 +253,11 @@ function programAddParticipant(req, response) {
   });
 }
 
-function programUpdateParticipant(req, response) {
+function updateNomination(req, response) {
+  console.log(req)
+}
+
+function removeNomination(req, response) {
   console.log(req)
 }
 
@@ -312,8 +336,8 @@ module.exports.createProgramAPI = createProgram
 module.exports.updateProgramAPI = updateProgram
 module.exports.deleteProgramAPI = deleteProgram
 module.exports.programListAPI = programList
-module.exports.programAddParticipantAPI = programAddParticipant
+module.exports.addNominationAPI = addNomination
 module.exports.programSearchAPI = programSearch
-module.exports.programUpdateParticipantAPI = programUpdateParticipant
+module.exports.updateNominationAPI = updateNomination
+module.exports.removeNominationAPI = removeNomination
 module.exports.programUpdateCollectionAPI = programUpdateCollection
-

@@ -24,17 +24,21 @@ module.exports = function (app) {
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programListAPI)
 
-  app.route(BASE_URL + '/update/participant')
-    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-      programService.programUpdateParticipantAPI)
-
   app.route(BASE_URL + '/search')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programSearchAPI)
 
-  app.route(BASE_URL + '/add/participant')
+  app.route(BASE_URL + '/nomination/add')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-      programService.programAddParticipantAPI)
+      programService.addNominationAPI)
+
+  app.route(BASE_URL + '/nomination/update')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.updateNominationAPI)
+
+  app.route(BASE_URL + '/nomination/remove')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.removeNominationAPI)
 
   app.route(BASE_URL + '/collection/link')
     .post(requestMiddleware.gzipCompression, requestMiddleware.createAndValidateRequestBody,
