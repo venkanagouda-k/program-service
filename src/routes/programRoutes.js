@@ -5,34 +5,38 @@ const BASE_URL = '/program/v1'
 
 module.exports = function (app) {
   app.route(BASE_URL + '/read/:program_id')
-    .get(requestMiddleware.gzipCompression(),requestMiddleware.createAndValidateRequestBody,
-    programService.getProgramAPI)
+    .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.getProgramAPI)
 
   app.route(BASE_URL + '/create')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.createProgramAPI)
+      programService.createProgramAPI)
 
   app.route(BASE_URL + '/update')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.updateProgramAPI)
+      programService.updateProgramAPI)
 
   app.route(BASE_URL + '/delete')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.deleteProgramAPI)
+      programService.deleteProgramAPI)
 
   app.route(BASE_URL + '/list')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.programListAPI)
+      programService.programListAPI)
 
   app.route(BASE_URL + '/update/participant')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.programUpdateParticipantAPI)
+      programService.programUpdateParticipantAPI)
 
   app.route(BASE_URL + '/search')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.programSearchAPI)
+      programService.programSearchAPI)
 
   app.route(BASE_URL + '/add/participant')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.programAddParticipantAPI)
+      programService.programAddParticipantAPI)
+
+  app.route(BASE_URL + '/collection/link')
+    .post(requestMiddleware.gzipCompression, requestMiddleware.createAndValidateRequestBody,
+      programService.programUpdateCollectionAPI)
 }

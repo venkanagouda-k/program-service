@@ -1,14 +1,14 @@
 const _ = require("lodash");
-const uuid = require("uuid/v1")
-  logger = require('sb_logger_util_v2')
-  messageUtils = require('./messageUtil')
-  respUtil = require('response_util')
-  responseCode = messageUtils.RESPONSE_CODE
-  programMessages = messageUtils.PROGRAM
-  model = require('../models')
+const uuid = require("uuid/v1");
+const logger = require('sb_logger_util_v2');
+const messageUtils = require('./messageUtil');
+const respUtil = require('response_util');
+const responseCode = messageUtils.RESPONSE_CODE;
+const programMessages = messageUtils.PROGRAM;
+const model = require('../models');
 
- function getProgram(req, response) {
-  
+function getProgram(req, response) {
+
 }
 
 async function createProgram(req, response) {
@@ -207,7 +207,7 @@ function programAddParticipant(req, response) {
     return response.status(400).send(errorResponse(rspObj))
   }
   const insertObj = req.body.request;
-  
+
   model.nomination.create(insertObj).then(res => {
     console.log("nomination successfully written to DB", res);
     return response.status(200).send(successResponse({
@@ -263,8 +263,9 @@ function programSearch(req, response) {
         result: error
       }));
     })
-
 }
+
+
 
 
 
@@ -314,4 +315,5 @@ module.exports.programListAPI = programList
 module.exports.programAddParticipantAPI = programAddParticipant
 module.exports.programSearchAPI = programSearch
 module.exports.programUpdateParticipantAPI = programUpdateParticipant
+module.exports.programUpdateCollectionAPI = programUpdateCollection
 
