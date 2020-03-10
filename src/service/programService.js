@@ -6,6 +6,9 @@ const respUtil = require('response_util');
 const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
 const model = require('../models');
+const { forkJoin }  = require('rxjs');
+const axios = require('axios');
+
 
  function getProgram(req, response) {
   model.program.findOne({
@@ -289,6 +292,81 @@ function programSearch(req, response) {
     })
 }
 
+function programUpdateCollection(req, response) {
+  const data = req.body
+  const rspObj = req.rspObj
+  const url = `https://dev.sunbirded.org/action/system/v3/content/update`;
+  if (!data.request || !data.request.program_id || !data.request.collection) {
+    rspObj.errCode = programMessages.LINK.MISSING_CODE
+    rspObj.errMsg = programMessages.LINK.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request program_id or request collections',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: {
+        data
+      }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+
+  const updateQuery = {
+    "request": {
+      "content": {
+        "programId": req.body.request.program_id
+      }
+    }
+  }
+
+  const updateUrls = _.map(req.body.request.collection, collection => {
+    return axios({
+      method: 'patch',
+      url: `${url}/${collection}`,
+      headers: req.headers,
+      data: updateQuery
+    });
+  })
+  forkJoin(updateUrls).subscribe(resData => {
+    const consolidatedResult = _.map(resData, r => r.data.result)
+    return response.status(200).send(successResponse({
+      apiId: 'api.program.collection.link',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: consolidatedResult
+    }));
+  }, (error) => {
+    rspObj.errCode = programMessages.LINK.MISSING_CODE
+    rspObj.errMsg = programMessages.LINK.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.RESOURCE_NOT_FOUND
+    logger.error({
+      msg: 'Error due to resource not found',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: {
+        data
+      }
+    }, req)
+
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.collection.link',
+      ver: '1.0',
+      msgId: uuid(),
+      errCode: error.response.data.params.err,
+      status: error.response.data.params.status,
+      errMsg: error.response.data.params.errmsg,
+      responseCode: error.response.data.responseCode,
+      result: error.response.data.result
+    }));
+  })
+}
 
 
 

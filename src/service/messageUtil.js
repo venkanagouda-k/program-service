@@ -665,6 +665,12 @@ exports.PROGRAM = {
     MISSING_MESSAGE: 'Required fields while updating program data are missing',
     FAILED_CODE: 'ERR_UPDATE_PROGRAM_DATA_FAILED',
     FAILED_MESSAGE: 'Unable to update the program data'
+  },
+  LINK: {
+    MISSING_CODE: 'ERR_LINKING_PROGRAM_TEXTBOOK',
+    MISSING_MESSAGE: 'Required fields while linking textbook to program are missing',
+    FAILED_CODE: 'ERR_LINKING_TEXBOOK_FAILED',
+    FAILED_MESSAGE: 'Unable to link textbook to program'
   }
 }
 exports.EXTERNAL_URL_META = {

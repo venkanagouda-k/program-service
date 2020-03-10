@@ -41,6 +41,6 @@ module.exports = function (app) {
       programService.removeNominationAPI)
 
   app.route(BASE_URL + '/collection/link')
-    .post(requestMiddleware.gzipCompression, requestMiddleware.createAndValidateRequestBody,
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programUpdateCollectionAPI)
 }
