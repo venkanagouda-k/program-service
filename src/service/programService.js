@@ -229,12 +229,12 @@ function programList(req, response) {
 function addNomination(req, response) {
   var data = req.body
   var rspObj = req.rspObj
-  if (!data.request || !data.request.program_id || !data.request.user_id) {
+  if (!data.request || !data.request.program_id || !data.request.user_id || !data.request.status) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
     logger.error({
-      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      msg: 'Error due to missing request or request program_id or request user_id or request status',
       err: {
         errCode: rspObj.errCode,
         errMsg: rspObj.errMsg,
@@ -265,14 +265,67 @@ function addNomination(req, response) {
       apiId: 'api.nomination.add',
       ver: '1.0',
       msgid: uuid(),
-      responseCode: 'ERR_NOMINATION_ADD',
+      responseCode: 'ERR_CREATE_PROGRAM',
       result: err
     }));
   });
 }
 
 function updateNomination(req, response) {
-  console.log(req)
+  var data = req.body
+  var rspObj = req.rspObj
+  if (!data.request || !data.request.program_id || !data.request.user_id) {
+    rspObj.errCode = programMessages.READ.MISSING_CODE
+    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  const updateQuery = {
+    where: { program_id:  data.request.program_id, user_id: data.request.user_id }
+  };
+  const updateValue = req.body.request;
+  if (!updateValue.updatedon) {
+    updateValue.updatedon = new Date();
+  }
+  model.nomination.update(updateValue, updateQuery).then(res => {
+    if (_.isArray(res) && !res[0]) {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.nomination.update',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_UPDATE_NOMINATION',
+        result: 'Nomination Not Found'
+      }));
+    }
+    return response.status(200).send(successResponse({
+      apiId: 'api.nomination.update',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: {
+        'program_id': updateQuery.where.program_id,
+        'user_id': updateQuery.where.user_id
+      }
+    }));
+  }).catch(err => {
+    console.log("Error updating nomination to db", err);
+    return response.status(400).send(errorResponse({
+      apiId: 'api.nomination.update',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_UPDATE_NOMINATION',
+      result: err
+    }));
+  });
 }
 
 function removeNomination(req, response) {
