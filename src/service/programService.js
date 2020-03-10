@@ -8,6 +8,7 @@ const programMessages = messageUtils.PROGRAM;
 const model = require('../models');
 const { forkJoin }  = require('rxjs');
 const axios = require('axios');
+const envVariables = require('../envVariables');
 
 
  function getProgram(req, response) {
@@ -89,15 +90,15 @@ async function updateProgram(req, response) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
-    // logger.error({
-    //   msg: 'Error due to missing request or request config or request rootOrgId or request type',
-    //   err: {
-    //     errCode: rspObj.errCode,
-    //     errMsg: rspObj.errMsg,
-    //     responseCode: rspObj.responseCode
-    //   },
-    //   additionalInfo: { data }
-    // }, req)
+    logger.error({
+      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
     return response.status(400).send(errorResponse(rspObj))
   }
   const updateQuery = { program_id: req.body.request.program_id };
@@ -135,15 +136,15 @@ async function deleteProgram(req, response) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
-    // logger.error({
-    //   msg: 'Error due to missing request or request config or request rootOrgId or request type',
-    //   err: {
-    //     errCode: rspObj.errCode,
-    //     errMsg: rspObj.errMsg,
-    //     responseCode: rspObj.responseCode
-    //   },
-    //   additionalInfo: { data }
-    // }, req)
+    logger.error({
+      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
     return response.status(400).send(errorResponse(rspObj))
   }
   const deleteQuery = { program_id: req.body.request.program_id };
@@ -188,10 +189,9 @@ function programList(req, response) {
     return response.status(400).send(errorResponse(rspObj))
   }
   model.program.findAll({
-    where: { rootorg_id:  data.request.rootorg_id }
+    where: data.request
   })
   .then(function(res) {
-    // console.log(res);
     return response.status(200).send(successResponse({
       apiId: 'api.program.list',
       ver: '1.0',
@@ -295,7 +295,7 @@ function programSearch(req, response) {
 function programUpdateCollection(req, response) {
   const data = req.body
   const rspObj = req.rspObj
-  const url = `https://dev.sunbirded.org/action/system/v3/content/update`;
+  const url = `${envVariables.baseURL}/action/system/v3/content/update`;
   if (!data.request || !data.request.program_id || !data.request.collection) {
     rspObj.errCode = programMessages.LINK.MISSING_CODE
     rspObj.errMsg = programMessages.LINK.MISSING_MESSAGE
@@ -367,9 +367,6 @@ function programUpdateCollection(req, response) {
     }));
   })
 }
-
-
-
 
 function successResponse (data) {
   var response = {}

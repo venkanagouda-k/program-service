@@ -1,5 +1,6 @@
 
 const envVariables = {
+    baseURL: process.env.BASE_URL || 'https://dev.sunbirded.org',
     port: process.env.service_port || 5000,
     level: process.env.service_log_level || 'info',
     config: {
