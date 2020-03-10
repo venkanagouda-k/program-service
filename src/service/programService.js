@@ -86,15 +86,15 @@ async function updateProgram(req, response) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
-    // logger.error({
-    //   msg: 'Error due to missing request or request config or request rootOrgId or request type',
-    //   err: {
-    //     errCode: rspObj.errCode,
-    //     errMsg: rspObj.errMsg,
-    //     responseCode: rspObj.responseCode
-    //   },
-    //   additionalInfo: { data }
-    // }, req)
+    logger.error({
+      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
     return response.status(400).send(errorResponse(rspObj))
   }
   const updateQuery = { program_id: req.body.request.program_id };
@@ -132,15 +132,15 @@ async function deleteProgram(req, response) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
-    // logger.error({
-    //   msg: 'Error due to missing request or request config or request rootOrgId or request type',
-    //   err: {
-    //     errCode: rspObj.errCode,
-    //     errMsg: rspObj.errMsg,
-    //     responseCode: rspObj.responseCode
-    //   },
-    //   additionalInfo: { data }
-    // }, req)
+    logger.error({
+      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
     return response.status(400).send(errorResponse(rspObj))
   }
   const deleteQuery = { program_id: req.body.request.program_id };
@@ -288,10 +288,6 @@ function programSearch(req, response) {
       }));
     })
 }
-
-
-
-
 
 function successResponse (data) {
   var response = {}
