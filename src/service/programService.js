@@ -118,9 +118,7 @@ function updateProgram(req, response) {
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_UPDATE_PROGRAM',
-        result: {
-          'program_id': 'Not Found'
-        }
+        result: 'Program_id Not Found'
       }));
     }
     return response.status(200).send(successResponse({
