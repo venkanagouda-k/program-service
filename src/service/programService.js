@@ -188,7 +188,7 @@ function programList(req, response) {
   });
 }
 
-function programAddParticipant(req, response) {
+function addNomination(req, response) {
   var data = req.body
   var rspObj = req.rspObj
   if (!data.request || !data.request.program_id || !data.request.user_id) {
@@ -233,7 +233,11 @@ function programAddParticipant(req, response) {
   });
 }
 
-function programUpdateParticipant(req, response) {
+function updateNomination(req, response) {
+  console.log(req)
+}
+
+function removeNomination(req, response) {
   console.log(req)
 }
 
@@ -311,7 +315,7 @@ module.exports.createProgramAPI = createProgram
 module.exports.updateProgramAPI = updateProgram
 module.exports.deleteProgramAPI = deleteProgram
 module.exports.programListAPI = programList
-module.exports.programAddParticipantAPI = programAddParticipant
+module.exports.addNominationAPI = addNomination
 module.exports.programSearchAPI = programSearch
-module.exports.programUpdateParticipantAPI = programUpdateParticipant
-
+module.exports.updateNominationAPI = updateNomination
+module.exports.removeNominationAPI = removeNomination
