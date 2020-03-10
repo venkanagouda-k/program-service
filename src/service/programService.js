@@ -350,7 +350,6 @@ function getNominationsList(req, response) {
     }, req)
     return response.status(400).send(errorResponse(rspObj))
   }
-  const insertObj = req.body.request;
 
   model.nomination.findAll({
     where: {...data.request},
@@ -363,7 +362,7 @@ function getNominationsList(req, response) {
     _.forEach(result, function(data){
       userList.push(data.user_id);
     })
-   userRes = await getUsersDetails(req, userList);
+   var userRes = await getUsersDetails(req, userList);
       _.forEach(result, function(data, index){
         var userInfo = _.find(userRes.data.result.response.content, function(d){
           return d.id === data.user_id;
