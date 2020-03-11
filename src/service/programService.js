@@ -102,12 +102,16 @@ async function updateProgram(req, response) {
     return response.status(400).send(errorResponse(rspObj))
   }
   const updateQuery = { program_id: req.body.request.program_id };
-  const updateValue = req.body.request;
+  const updateValue = _.cloneDeep(req.body.request);
   if(updateValue.config){
     updateValue.config = JSON.stringify(updateValue.config);
   }
   delete updateValue.program_id;
-  programDBModel.instance.program.updateAsync(updateQuery, updateValue, {if_not_exist: true}).then(resData => {
+  model.program.update(updateValue, {
+    where: {
+      program_id: req.body.request.program_id
+    }
+  }).then(resData => {
     return response.status(200).send(successResponse({
         apiId: 'api.program.update',
         ver: '1.0',

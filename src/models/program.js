@@ -58,10 +58,12 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING
     },
     createdon: {
-      type: DataTypes.DATE
+      type: DataTypes.DATE,
+      defaultValue: Date.now()
     },
     updatedon: {
-      type: DataTypes.DATE
+      type: DataTypes.DATE,
+      defaultValue: Date.now()
     },
     rootorg_id: {
       type: DataTypes.STRING
