@@ -30,7 +30,7 @@ module.exports = function(sequelize, DataTypes) {
       feedback: {
         type: DataTypes.TEXT
       },
-      roleMapping: {
+      rolemapping: {
         type: DataTypes.JSON
       },
       createdby: {

@@ -40,6 +40,10 @@ module.exports = function (app) {
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.removeNominationAPI)
 
+  app.route(BASE_URL + '/nomination/list')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.nominationsListAPI)
+
   app.route(BASE_URL + '/collection/link')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programUpdateCollectionAPI)
