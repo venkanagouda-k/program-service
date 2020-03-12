@@ -671,6 +671,26 @@ exports.PROGRAM = {
     MISSING_MESSAGE: 'Required fields while linking textbook to program are missing',
     FAILED_CODE: 'ERR_LINKING_TEXBOOK_FAILED',
     FAILED_MESSAGE: 'Unable to link textbook to program'
+  },
+  NOMINATION: {
+    READ: {
+      MISSING_CODE: 'ERR_GET_NOMINATION_DATA',
+      MISSING_MESSAGE: 'Required fields like program_id to get nomination are missing',
+      FAILED_CODE: 'ERR_GET_NOMINATION_DATA_FAILED',
+      FAILED_MESSAGE: 'Unable to get the nomination data'
+    },
+    CREATE: {
+      MISSING_CODE: 'ERR_CREATE_NOMINATION_DATA',
+      MISSING_MESSAGE: 'Required fields like program_id, user_id, status for creating nomination data are missing',
+      FAILED_CODE: 'ERR_CREATE_NOMINATION_DATA_FAILED',
+      FAILED_MESSAGE: 'Unable to create the nomination data'
+    },
+    UPDATE: {
+      MISSING_CODE: 'ERR_UPDATE_NOMINATION_DATA',
+      MISSING_MESSAGE: 'Required fields like program_id, user_id while updating nomination data are missing',
+      FAILED_CODE: 'ERR_UPDATE_NOMINATION_DATA_FAILED',
+      FAILED_MESSAGE: 'Unable to update the nomination data'
+    }
   }
 }
 
