@@ -223,7 +223,7 @@ function programList(req, response) {
       }, req)
       return response.status(400).send(errorResponse(rspObj))
     }
-    model.nomination.findAll({
+    model.nomination.findAndCountAll({
       where: {user_id: data.request.filters.enrolled_id.user_id},
       limit: res_limit,
       include: [{
