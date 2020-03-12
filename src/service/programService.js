@@ -452,9 +452,9 @@ function getProgramContentTypes(req, response) {
   rspObj.errMsg = contentTypeMessages.FETCH.FAILED_MESSAGE
   rspObj.responseCode = responseCode.SERVER_ERROR
   logger.debug({ msg: 'Request to program to fetch content types'}, req)
-  model.content.findAll()
+  model.content.findAndCountAll()
   .then(res => {
-    rspObj.result = {contentType: res}
+    rspObj.result = {count: res.count, contentType: res.rows}
     rspObj.responseCode = 'OK'
     return response.status(200).send(successResponse(rspObj))
   }).catch(error => {
