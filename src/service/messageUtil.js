@@ -673,6 +673,14 @@ exports.PROGRAM = {
     FAILED_MESSAGE: 'Unable to link textbook to program'
   }
 }
+
+exports.CONTENT_TYPE = {
+  FETCH: {
+    FAILED_CODE: 'ERR_GET_PROGRAM_CONTENT_TYPE_FAILED',
+    FAILED_MESSAGE: 'Unable to get the program content type'
+  }
+}
+
 exports.EXTERNAL_URL_META = {
   FETCH: {
     MISSING_CODE: 'ERR_FETCH_URLMETA_MISSING',

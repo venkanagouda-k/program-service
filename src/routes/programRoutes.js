@@ -47,4 +47,8 @@ module.exports = function (app) {
   app.route(BASE_URL + '/collection/link')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programUpdateCollectionAPI)
+
+  app.route(BASE_URL + '/contenttypes/list')
+  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+    programService.programGetContentTypesAPI)
 }

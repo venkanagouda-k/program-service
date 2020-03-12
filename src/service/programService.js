@@ -5,6 +5,7 @@ const messageUtils = require('./messageUtil');
 const respUtil = require('response_util');
 const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
+const contentTypeMessages = messageUtils.CONTENT_TYPE;
 const model = require('../models');
 const { forkJoin }  = require('rxjs');
 const axios = require('axios');
@@ -445,6 +446,31 @@ function programSearch(req, response) {
     })
 }
 
+function getProgramContentTypes(req, response) {
+  var rspObj = req.rspObj;
+  rspObj.errCode = contentTypeMessages.FETCH.FAILED_CODE
+  rspObj.errMsg = contentTypeMessages.FETCH.FAILED_MESSAGE
+  rspObj.responseCode = responseCode.SERVER_ERROR
+  logger.debug({ msg: 'Request to program to fetch content types'}, req)
+  model.content.findAll()
+  .then(res => {
+    rspObj.result = {contentType: res}
+    rspObj.responseCode = 'OK'
+    return response.status(200).send(successResponse(rspObj))
+  }).catch(error => {
+    logger.error({
+      msg: 'Error fetching program content types',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { error }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj));
+  })
+}
+
 function programUpdateCollection(req, response) {
   const data = req.body
   const rspObj = req.rspObj
@@ -570,3 +596,4 @@ module.exports.updateNominationAPI = updateNomination
 module.exports.removeNominationAPI = removeNomination
 module.exports.programUpdateCollectionAPI = programUpdateCollection
 module.exports.nominationsListAPI = getNominationsList
+module.exports.programGetContentTypesAPI = getProgramContentTypes
