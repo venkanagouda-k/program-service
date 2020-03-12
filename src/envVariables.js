@@ -1,15 +1,15 @@
 
 const envVariables = {
-    baseURL: process.env.BASE_URL || 'https://dev.sunbirded.org',
-    port: process.env.service_port || 5000,
-    level: process.env.service_log_level || 'info',
+    baseURL: process.env.sunbird_program_base_url || 'https://dev.sunbirded.org',
+    port: process.env.sunbird_program_port || 6000,
+    level: process.env.sunbird_service_log_level || 'info',
     config: {
-        user: process.env.DB_user || "postgres",
-        host: process.env.DB_host || "localhost",
-        database: process.env.DB_database || 'sunbird_programs',
-        password: process.env.DB_password || 'password',
-        port: process.env.DB_port || 5432,
-        dialect: process.env.DB_DIALECT || "postgres",
+        user: process.env.sunbird_program_db_user || "postgres",
+        host: process.env.sunbird_program_db_host || "172.16.0.242",
+        database: process.env.sunbird_program_db_name || 'sunbird_programs',
+        password: process.env.sunbird_program_db_password || 'password',
+        port: process.env.sunbird_program_db_port || 5432,
+        dialect: process.env.sunbird_program_db_dialect || "postgres",
     }
 }
 module.exports = envVariables;
