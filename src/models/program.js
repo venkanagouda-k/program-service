@@ -16,7 +16,7 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.ENUM("public", "private"),
       allowNull: false
     },
-    default_roles: {
+    collection_ids: {
       type: DataTypes.ARRAY(DataTypes.TEXT)
     },
     content_types: {
@@ -64,6 +64,9 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATE
     },
     rootorg_id: {
+      type: DataTypes.STRING
+    },
+    sourcing_org_name: {
       type: DataTypes.STRING
     },
     channel: {

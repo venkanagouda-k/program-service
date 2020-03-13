@@ -1,7 +1,7 @@
 
 const envVariables = {
     baseURL: process.env.sunbird_program_base_url || 'https://dev.sunbirded.org',
-    port: process.env.sunbird_program_port || 5000,
+    port: process.env.sunbird_program_port || 6000,
     level: process.env.sunbird_service_log_level || 'info',
     config: {
         user: process.env.sunbird_program_db_user || "postgres",
