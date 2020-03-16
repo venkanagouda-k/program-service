@@ -3,6 +3,7 @@ const uuid = require("uuid/v1");
 const logger = require('sb_logger_util_v2');
 const messageUtils = require('./messageUtil');
 const respUtil = require('response_util');
+const Sequelize = require('sequelize');
 const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
 const contentTypeMessages = messageUtils.CONTENT_TYPE;
@@ -405,27 +406,15 @@ function getNominationsList(req, response) {
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
     }
-  model.nomination.findAll({
-    where: {...data.request.filters},
-    limit: res_limit,
-    order: [
-      ['updatedon', 'DESC']
-    ]
-  }).then(async function(result){
-   try {
-    var userList = [];
-    _.forEach(result, function(data){
-      userList.push(data.user_id);
-    })
-   var userRes = await getUsersDetails(req, userList);
-      _.forEach(result, function(data, index){
-        var userInfo = _.find(userRes.data.result.response.content, function(d){
-          return d.id === data.user_id;
-        });
-        if(userInfo){
-          result[index].dataValues.userData = userInfo;
-        }
-      });
+  if(data.request.facets) {
+    const facets = data.request.facets;
+    model.nomination.findAll({
+      where: {
+        program_id: data.request.filters.program_id
+      },
+      attributes: [facets[0], [Sequelize.fn('count', Sequelize.col(facets[0])), 'count']],
+      group: [facets[0]]
+    }).then((result) => {
       return response.status(200).send(successResponse({
         apiId: 'api.nomination.list',
         ver: '1.0',
@@ -433,26 +422,65 @@ function getNominationsList(req, response) {
         responseCode: 'OK',
         result: result
       }))
-
+    }).catch((err) => {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.nomination.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_NOMINATION_LIST',
+        result: err
+      }));
+    })
+  }else {
+    model.nomination.findAll({
+      where: {...data.request.filters},
+      limit: res_limit,
+      order: [
+        ['updatedon', 'DESC']
+      ]
+    }).then(async function(result){
+     try {
+      var userList = [];
+      _.forEach(result, function(data){
+        userList.push(data.user_id);
+      })
+     var userRes = await getUsersDetails(req, userList);
+        _.forEach(result, function(data, index){
+          var userInfo = _.find(userRes.data.result.response.content, function(d){
+            return d.id === data.user_id;
+          });
+          if(userInfo){
+            result[index].dataValues.userData = userInfo;
+          }
+        });
+        return response.status(200).send(successResponse({
+          apiId: 'api.nomination.list',
+          ver: '1.0',
+          msgid: uuid(),
+          responseCode: 'OK',
+          result: result
+        }))
+  
+    }
+    catch(err) {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.nomination.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_NOMINATION_LIST',
+        result: err
+      }));
+    }
+    }).catch(function(err) {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.nomination.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_NOMINATION_LIST',
+        result: err
+      }));
+    });
   }
-  catch(err) {
-    return response.status(400).send(errorResponse({
-      apiId: 'api.nomination.list',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'ERR_NOMINATION_LIST',
-      result: err
-    }));
-  }
-  }).catch(function(err) {
-    return response.status(400).send(errorResponse({
-      apiId: 'api.nomination.list',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'ERR_NOMINATION_LIST',
-      result: err
-    }));
-  });
 }
 
 function getUsersDetails(req, userList){
