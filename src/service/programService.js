@@ -388,32 +388,16 @@ function getNominationsList(req, response) {
   var data = req.body;
   var rspObj = req.rspObj;
   var res_limit = queryRes_Min;
-  if (!data.request || !data.request.filters || !data.request.filters.program_id) {
-    rspObj.errCode = programMessages.NOMINATION.READ.MISSING_CODE
-    rspObj.errMsg = programMessages.NOMINATION.READ.MISSING_MESSAGE
-    rspObj.responseCode = responseCode.CLIENT_ERROR
-    logger.error({
-      msg: 'Error due to missing request.filters.program_id',
-      err: {
-        errCode: rspObj.errCode,
-        errMsg: rspObj.errMsg,
-        responseCode: rspObj.responseCode
-      },
-      additionalInfo: { data }
-    }, req)
-    return response.status(400).send(errorResponse(rspObj))
-  }
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
     }
+  const findQuery = data.request.filters ? data.request.filters : {}
   if(data.request.facets) {
     const facets = data.request.facets;
     model.nomination.findAll({
-      where: {
-        program_id: data.request.filters.program_id
-      },
-      attributes: [facets[0], [Sequelize.fn('count', Sequelize.col(facets[0])), 'count']],
-      group: [facets[0]]
+      where: {...findQuery},
+      attributes: [...facets, [Sequelize.fn('count', Sequelize.col(facets[0])), 'count']],
+      group: [...facets]
     }).then((result) => {
       return response.status(200).send(successResponse({
         apiId: 'api.nomination.list',
@@ -433,7 +417,7 @@ function getNominationsList(req, response) {
     })
   }else {
     model.nomination.findAll({
-      where: {...data.request.filters},
+      where: {...findQuery},
       limit: res_limit,
       order: [
         ['updatedon', 'DESC']
