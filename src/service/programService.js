@@ -475,7 +475,7 @@ function getNominationsList(req, response) {
 }
 
 function getUsersDetails(req, userId){
-  const url = `/content/reg/search`;
+  const url = `${envVariables.baseURL}/content/reg/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -556,7 +556,7 @@ function getProgramContentTypes(req, response) {
 function programUpdateCollection(req, response) {
   const data = req.body
   const rspObj = req.rspObj
-  const url = `${envVariables.baseURL}/action/system/v3/content/update`;
+  const url = `${envVariables.SUNBIRD_URL}/action/system/v3/content/update`;
   if (!data.request || !data.request.program_id || !data.request.collection) {
     rspObj.errCode = programMessages.LINK.MISSING_CODE
     rspObj.errMsg = programMessages.LINK.MISSING_MESSAGE
