@@ -1,6 +1,7 @@
 
 const envVariables = {
     baseURL: process.env.sunbird_program_base_url || 'https://dev.sunbirded.org',
+    SUNBIRD_PORTAL_API_AUTH_TOKEN: env.sunbird_api_auth_token,
     port: process.env.sunbird_program_port || 6000,
     level: process.env.sunbird_service_log_level || 'info',
     config: {

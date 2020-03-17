@@ -444,24 +444,22 @@ function getNominationsList(req, response) {
           responseCode: 'OK',
           result: result
         }))
-  
-    }
-    catch(err) {
+     } catch(err) {
       return response.status(400).send(errorResponse({
         apiId: 'api.nomination.list',
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_NOMINATION_LIST',
-        result: err
+        result: err.message || err
       }));
-    }
+     }
     }).catch(function(err) {
       return response.status(400).send(errorResponse({
         apiId: 'api.nomination.list',
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_NOMINATION_LIST',
-        result: err
+        result: err.message || err
       }));
     });
   }
@@ -469,8 +467,12 @@ function getNominationsList(req, response) {
 
 function getUsersDetails(req, userList){
   const url = `${envVariables.baseURL}/api/user/v1/search`;
+  if(req.headers.authorization){
+    req.headers.authorization = envVariables.SUNBIRD_PORTAL_API_AUTH_TOKEN;
+  }
   const reqData = {
     "request": {
+      "headers": req.headers,
       "filters": {
         "id": userList
       }
