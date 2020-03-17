@@ -428,13 +428,13 @@ function getNominationsList(req, response) {
       _.forEach(result, function(data){
         userList.push(data.user_id);
       })
-     var userRes = await getUsersDetails(req, userList);
-        _.forEach(result, function(data, index){
-          var userInfo = _.find(userRes.data.result.response.content, function(d){
-            return d.id === data.user_id;
-          });
-          if(userInfo){
-            result[index].dataValues.userData = userInfo;
+      const userMap = _.map(userList, user => {
+        return getUsersDetails(req, user);
+      })
+      forkJoin(...userMap).subscribe(resData => {
+        _.forEach(resData, function(data, index){
+          if(data.data.result){
+            result[index].dataValues.userData = data.data.result.User[0];
           }
         });
         return response.status(200).send(successResponse({
@@ -444,6 +444,7 @@ function getNominationsList(req, response) {
           responseCode: 'OK',
           result: result
         }))
+      });
      } catch(err) {
       return response.status(400).send(errorResponse({
         apiId: 'api.nomination.list',
@@ -465,17 +466,22 @@ function getNominationsList(req, response) {
   }
 }
 
-function getUsersDetails(req, userList){
-  const url = `${envVariables.baseURL}/api/user/v1/search`;
-  if(req.headers.authorization){
-    req.headers.authorization = envVariables.SUNBIRD_PORTAL_API_AUTH_TOKEN;
-  }
+function getUsersDetails(req, userId){
+  const url = `/content/reg/search`;
   const reqData = {
+    "id": "open-saber.registry.search",
+    "ver": "1.0",
+    "ets": "11234",
+    "params": {
+      "did": "",
+      "key": "",
+      "msgid": ""
+    },
     "request": {
-      "headers": req.headers,
-      "filters": {
-        "id": userList
-      }
+       "entityType":["User"],
+       "filters": {
+         "userId": {"eq": userId}
+       }
     }
   }
   return axios({
