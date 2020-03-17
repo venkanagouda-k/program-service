@@ -428,6 +428,15 @@ function getNominationsList(req, response) {
       _.forEach(result, function(data){
         userList.push(data.user_id);
       })
+      if(_.isEmpty(userList)){
+        return response.status(200).send(successResponse({
+          apiId: 'api.nomination.list',
+          ver: '1.0',
+          msgid: uuid(),
+          responseCode: 'OK',
+          result: result
+        }))
+      }
       const userMap = _.map(userList, user => {
         return getUsersDetails(req, user);
       })
