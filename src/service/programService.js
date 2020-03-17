@@ -444,6 +444,14 @@ function getNominationsList(req, response) {
           responseCode: 'OK',
           result: result
         }))
+      }, (error) => {
+        return response.status(400).send(errorResponse({
+          apiId: 'api.nomination.list',
+          ver: '1.0',
+          msgid: uuid(),
+          responseCode: 'ERR_NOMINATION_LIST',
+          result: error
+        }));
       });
      } catch(err) {
       return response.status(400).send(errorResponse({
@@ -451,7 +459,7 @@ function getNominationsList(req, response) {
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_NOMINATION_LIST',
-        result: err
+        result: err.message || err
       }));
      }
     }).catch(function(err) {
@@ -460,7 +468,7 @@ function getNominationsList(req, response) {
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_NOMINATION_LIST',
-        result: err
+        result: err.message || err
       }));
     });
   }
@@ -515,7 +523,7 @@ function programSearch(req, response) {
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_SEARCH_PROGRAM',
-        result: error
+        result: error.message || error
       }));
     })
 }
