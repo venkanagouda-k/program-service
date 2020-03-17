@@ -450,7 +450,7 @@ function getNominationsList(req, response) {
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_NOMINATION_LIST',
-        result: err.message || err
+        result: err
       }));
      }
     }).catch(function(err) {
@@ -459,7 +459,7 @@ function getNominationsList(req, response) {
         ver: '1.0',
         msgid: uuid(),
         responseCode: 'ERR_NOMINATION_LIST',
-        result: err.message || err
+        result: err
       }));
     });
   }
