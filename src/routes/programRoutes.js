@@ -51,4 +51,8 @@ module.exports = function (app) {
   app.route(BASE_URL + '/contenttypes/list')
   .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
     programService.programGetContentTypesAPI)
+
+  app.route(BASE_URL + '/users/:user_id')
+  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+    programService.getUserDetailsAPI)
 }
