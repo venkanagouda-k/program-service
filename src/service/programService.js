@@ -529,7 +529,7 @@ function getUsersDetailsById(req,response){
           getOrgDetailsFromRegistry(user, userOrgMapDetails, callback3)
       },
       function (user,userOrgMapDetails, orgInfoLists, callback4){
-        getUserDetailsList(user,userOrgMapDetails,orgInfoLists,callback4)
+          createUserRecords(user,userOrgMapDetails,orgInfoLists,callback4)
       }
   ], function (err, res) {
       if (err) {
@@ -669,7 +669,7 @@ function getOrgDetailsFromRegistry(user,userOrgMapDetails, callback) {
 
 } 
 
-function getUserDetailsList(user,userOrgMapDetails,orgInfoList, callback) {
+function createUserRecords(user,userOrgMapDetails,orgInfoList, callback) {
       
     try{
         orgInfoList.map((org)=>{
