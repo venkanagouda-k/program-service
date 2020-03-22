@@ -828,6 +828,16 @@ function programUpdateCollection(req, response) {
   })
 }
 
+function health(req, response){
+  return response.status(200).send(successResponse({
+    apiId: 'api.program.health',
+    ver: '1.0',
+    msgid: uuid(),
+    responseCode: 'OK',
+    result: {}
+  })); 
+}
+
 function successResponse (data) {
   var response = {}
   response.id = data.apiId
@@ -879,3 +889,4 @@ module.exports.programUpdateCollectionAPI = programUpdateCollection
 module.exports.nominationsListAPI = getNominationsList
 module.exports.programGetContentTypesAPI = getProgramContentTypes
 module.exports.getUserDetailsAPI = getUsersDetailsById
+module.exports.healthAPI = health
