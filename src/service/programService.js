@@ -11,10 +11,15 @@ const model = require('../models');
 const { forkJoin }  = require('rxjs');
 const axios = require('axios');
 const envVariables = require('../envVariables');
+const RegistryService = require('./registryService')
+var async = require('async')
+
+
 const queryRes_Max = 500;
 const queryRes_Min = 100;
 const HierarchyService  = require('../helpers/updateHierarchy.helper');
 
+const registryService = new RegistryService()
 const hierarchyService = new HierarchyService()
 
 function getProgram(req, response) {
@@ -511,6 +516,191 @@ function getUsersDetails(req, userId){
   });
 }
 
+
+function getUsersDetailsById(req,response){
+
+    const dikshaUserId = req.params.user_id
+    async.waterfall([
+      function (callback1) {
+          getUserDetailsFromRegistry(dikshaUserId, callback1)
+      },
+      function (user, callback2) {
+          getUserOrgMappingDetailFromRegistry(user, callback2);
+      },
+      function (user,userOrgMapDetails, callback3) {
+          getOrgDetailsFromRegistry(user, userOrgMapDetails, callback3)
+      },
+      function (user,userOrgMapDetails, orgInfoLists, callback4){
+          createUserRecords(user,userOrgMapDetails,orgInfoLists,callback4)
+      }
+  ], function (err, res) {
+      if (err) {
+        return response.status(400).send(errorResponse({
+          apiId: 'api.user.read',
+          ver: '1.0',
+          msgid: uuid(),
+          responseCode: 'ERR_READ_USER',
+          result: err.message || err
+        }))
+
+      } else {
+        return response.status(200).send(successResponse({
+          apiId: 'api.user.read',
+          ver: '1.0',
+          msgid: uuid(),
+          responseCode: 'OK',
+          result: res
+        }))
+      }
+  });
+}
+
+function getUserDetailsFromRegistry(value, callback) {
+  let userDetailReq = {
+      body: {
+          id: "open-saber.registry.search",
+          request: {
+              entityType:["User"],
+              filters:{
+                  userId:{
+                      eq: value
+                  }
+              }
+
+          }
+      }
+  }
+
+  registryService.searchRecord(userDetailReq, (err, res) => {
+      if (res){
+          if(res.status == 200) {
+              if(res.data.result.User.length > 0){
+                  var userDetails = res.data.result.User[0];
+                  callback(null,userDetails)
+              }else{
+                  callback("user does not exist")
+              }
+            }else{
+              logger.error("Encounted some error while searching data")
+              callback("Encounted some error while searching data")
+            }
+      } else {
+          logger.error("Encounted some error while searching data")
+          callback("Encounted some error while searching data")
+      }
+  });
+
+}
+
+
+function getUserOrgMappingDetailFromRegistry(user, callback) {
+
+  let userOrgMappingReq = {
+      body: {
+        id: "open-saber.registry.search",
+        request: {
+              entityType:["User_Org"],
+              filters:{
+                  userId:{
+                      eq: user.osid
+                  }
+              }
+
+          }
+      }
+  }
+
+  registryService.searchRecord(userOrgMappingReq, (err, res) => {
+      if (res){
+          if(res.status == 200) {
+              if(res.data.result.User_Org.length > 0){
+                 userOrgMapList = res.data.result.User_Org
+                 callback(null,user,userOrgMapList)
+              }else{
+                  callback("Org not mapped to the user: "+user.userId)
+              }
+            }else{
+              logger.error("Encounted some error while searching data")
+              callback("Encounted some error while searching data")
+            }
+      } else {
+          logger.error("Encounted some error while searching data")
+          callback("Encounted some error while searching data")
+      }
+  });
+
+}
+
+function getOrgDetailsFromRegistry(user,userOrgMapDetails, callback) {
+
+  const orgList = userOrgMapDetails.map((value)=> value.orgId.slice(2))
+
+  let orgDetailsReq = {
+      body: {
+        id: "open-saber.registry.search",
+        request: {
+              entityType:["Org"],
+              filters:{
+                  osid:{
+                      or: orgList
+                  }
+              }
+
+          }
+      }
+  }
+
+  registryService.searchRecord(orgDetailsReq, (err, res) => {
+      if (res){
+          if(res.status == 200) {
+              if(res.data.result.Org.length > 0){
+                 orgInfoList = res.data.result.Org
+                 callback(null,user,userOrgMapList, orgInfoList)
+              }else{
+                  callback("Org Details Not available with org Ids: "+orgList.toString())
+              }
+            }else{
+              logger.error("Encounted some error while searching data")
+              callback("Encounted some error while searching data")
+            }
+      } else {
+          logger.error("Encounted some error while searching data")
+          callback("Encounted some error while searching data")
+      }
+  });
+
+}
+
+function createUserRecords(user,userOrgMapDetails,orgInfoList, callback) {
+
+    try{
+        orgInfoList.map((org)=>{
+          var roles = null
+          userOrgMapDetails.forEach(function (element, index, array) {
+                if(org.osid === element.orgId){
+                   roles = element.roles;
+                }
+            });
+
+            org['roles']=roles
+
+        });
+
+        user['orgs']=orgInfoList
+        callback(null,user)
+
+    }catch(e){
+        logger.error("Error while parsing for user lists")
+        callback("Some Internal processing error while parsing user details",null)
+    }
+
+
+}
+
+
+
+
+
 function programSearch(req, response) {
   const fieldsToSelect = _.compact(_.split(_.get(req, 'query.fields'), ','));
   console.log(fieldsToSelect)
@@ -640,7 +830,6 @@ function programUpdateCollection(req, response) {
   })
 }
 
-
 async function programCopyCollections(req, response) {
   const data = req.body;
   const rspObj = req.rspObj;
@@ -743,6 +932,15 @@ async function programCopyCollections(req, response) {
     )
 }
 
+function health(req, response){
+  return response.status(200).send(successResponse({
+    apiId: 'api.program.health',
+    ver: '1.0',
+    msgid: uuid(),
+    responseCode: 'OK',
+    result: {}
+  }));
+}
 
 function successResponse (data) {
   var response = {}
@@ -794,4 +992,6 @@ module.exports.removeNominationAPI = removeNomination
 module.exports.programUpdateCollectionAPI = programUpdateCollection
 module.exports.nominationsListAPI = getNominationsList
 module.exports.programGetContentTypesAPI = getProgramContentTypes
+module.exports.getUserDetailsAPI = getUsersDetailsById
+module.exports.healthAPI = health
 module.exports.programCopyCollectionAPI = programCopyCollections;

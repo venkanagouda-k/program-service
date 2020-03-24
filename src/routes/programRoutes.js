@@ -52,6 +52,13 @@ module.exports = function (app) {
   .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
     programService.programGetContentTypesAPI)
 
+  app.route(BASE_URL + '/health')
+  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.healthAPI)
+
+  app.route(BASE_URL + '/users/:user_id')
+  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+    programService.getUserDetailsAPI)
 
   app.route(BASE_URL + '/collection/copy')
   .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
