@@ -691,6 +691,14 @@ exports.PROGRAM = {
       FAILED_CODE: 'ERR_UPDATE_NOMINATION_DATA_FAILED',
       FAILED_MESSAGE: 'Unable to update the nomination data'
     }
+  },
+  COPY_COLLECTION: {
+    COPY: {
+      MISSING_CODE: 'ERR_COPYING_COLLECTIONS',
+      MISSING_MESSAGE: 'Required fields like program_id, collections, allow_content_types, channel to copy textbook are missing',
+      FAILED_CODE: 'ERR_COPY_COLLECTIONS_FAILED',
+      FAILED_MESSAGE: 'Unable to copy the collection'
+    }
   }
 }
 

@@ -13,7 +13,9 @@ const axios = require('axios');
 const envVariables = require('../envVariables');
 const queryRes_Max = 500;
 const queryRes_Min = 100;
+const HierarchyService  = require('../helpers/updateHierarchy.helper');
 
+const hierarchyService = new HierarchyService()
 
 function getProgram(req, response) {
   model.program.findOne({
@@ -638,6 +640,110 @@ function programUpdateCollection(req, response) {
   })
 }
 
+
+async function programCopyCollections(req, response) {
+  const data = req.body;
+  const rspObj = req.rspObj;
+
+  if(!data.request || !data.request.program_id || !data.request.collections || !data.request.allowed_content_types || !data.request.channel) {
+    rspObj.errCode = programMessages.COPY_COLLECTION.COPY.MISSING_CODE
+    rspObj.errMsg = programMessages.COPY_COLLECTION.COPY.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request config or request rootOrgId or request type',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: { data }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+
+    rspObj.responseCode = 'OK'
+    const collections = _.get(data, 'request.collections');
+    const programId = _.get(data, 'request.program_id');
+    const allowedContentTypes = _.get(data, 'request.allowed_content_types');
+    const channel = _.get(data, 'request.channel');
+    const openForContribution = true;
+    const additionalMetaData = {programId, allowedContentTypes, channel, openForContribution}
+    hierarchyService.filterExistingTextbooks(collections)
+    .subscribe(
+      (resData) => {
+        const consolidatedResult = _.map(resData, r => {
+          return {result: r.data.result, config : r.config.data}
+        })
+        const existingTextbooks = hierarchyService.getExistingCollection(consolidatedResult);
+        const nonExistingTextbooks = hierarchyService.getNonExistingCollection(consolidatedResult)
+        if(existingTextbooks && existingTextbooks.length > 0) {
+          hierarchyService.getHierarchy(existingTextbooks)
+              .subscribe(originHierarchyResult => {
+                console.log(originHierarchyResult)
+                const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                  return _.get(r , 'data')
+                })
+
+                const getCollectiveRequest = _.map(originHierarchyResultData, c => {
+                  return hierarchyService.generateHierarchyUpdateRequest(c, additionalMetaData);
+                })
+
+                console.log(getCollectiveRequest);
+                hierarchyService.bulkUpdateHierarchy(getCollectiveRequest)
+                  .subscribe(updateResult => {
+                    console.log(updateResult)
+                  }, error => {
+                    console.log(error.data)
+                  })
+              }, error => {
+                console.log(error)
+              })
+
+        }
+
+        if(nonExistingTextbooks && nonExistingTextbooks.length > 0) {
+          hierarchyService.getHierarchy(nonExistingTextbooks)
+            .subscribe(originHierarchyResult => {
+              const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                return _.get(r, 'data')
+              })
+              hierarchyService.createCollection(originHierarchyResultData)
+                .subscribe(createResponse => {
+                  const createdCollections = _.map(createResponse, cr => {
+                    const x =  {creationResult: cr.data, hierarchy: {...JSON.parse(cr.config.data).request}}
+                    x.hierarchy.content.identifier = cr.config.params.identifier
+                    return x;
+                  })
+                  const getBulkUpdateRequest = _.map(createdCollections, item => {
+                   return  hierarchyService.getHierarchyUpdateRequest(item, additionalMetaData)
+                  })
+
+                  hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest)
+                  .subscribe(updateResult => {
+                    const updateResultData = _.map(updateResult, obj => {
+                        return obj.data
+                    })
+
+                    response.status(200).send(successResponse(updateResultData))
+
+                  }, error => {
+                    console.log(error)
+                  })
+
+                }, error => {
+                  console.log(error)
+                })
+            })
+        }
+      },
+      (error) => {
+        console.log(error);
+        return response.status(400).send(errorResponse(rspObj))
+      }
+    )
+}
+
+
 function successResponse (data) {
   var response = {}
   response.id = data.apiId
@@ -650,7 +756,7 @@ function successResponse (data) {
 }
 
 /**
- * this function create error response body.
+ * function create error response body.
  * @param {Object} data
  * @returns {nm$_responseUtil.errorResponse.response}
  */
@@ -688,3 +794,4 @@ module.exports.removeNominationAPI = removeNomination
 module.exports.programUpdateCollectionAPI = programUpdateCollection
 module.exports.nominationsListAPI = getNominationsList
 module.exports.programGetContentTypesAPI = getProgramContentTypes
+module.exports.programCopyCollectionAPI = programCopyCollections;
