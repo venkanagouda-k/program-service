@@ -698,6 +698,22 @@ exports.PROGRAM = {
       MISSING_MESSAGE: 'Required fields like program_id, collections, allow_content_types, channel to copy textbook are missing',
       FAILED_CODE: 'ERR_COPY_COLLECTIONS_FAILED',
       FAILED_MESSAGE: 'Unable to copy the collection'
+    },
+    SEARCH_DOCK_COLLECTION: {
+      FAILED_CODE: 'ERR_SEARCHING_DOCK_FOR_COLLECTION',
+      FAILED_MESSAGE: 'Unable to search collections'
+    },
+    GET_HIERARCHY: {
+      FAILED_CODE: 'ERR_FETCHING_HIERARCHY_FOR_COLLECTION',
+      FAILED_MESSAGE: 'Unable to fetch hierarchy for collections'
+    },
+    BULK_UPDATE_HIERARCHY: {
+      FAILED_CODE: 'ERR_UPDATING_HIERARCHY',
+      FAILED_MESSAGE: 'Unable to update hierarchy for collections'
+    },
+    CREATE_COLLECTION: {
+      FAILED_CODE: 'ERR_CREATING_COLLECTION',
+      FAILED_MESSAGE: 'Unable to create collection'
     }
   }
 }
