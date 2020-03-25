@@ -82,7 +82,7 @@ class HierarchyService {
         data: {
           request: {
             content: {
-              ..._.omit(collection.result.content, ['children', 'identifier', 'status', 'reservedDialcodes', 'dialcodes', 'license', 'framework', 'subject', 'medium', 'gradeLevel', 'board', 'sYS_INTERNAL_LAST_UPDATED_ON', 'contentCredits', 'consumerId', 'osId', 'qrCodeProcessId', 'idealScreenSize', 'contentDisposition', 'os', 'idealScreenDensity', 'depth',])
+              ..._.omit(collection.result.content, ['children', 'identifier', 'status', 'reservedDialcodes', 'dialcodes', 'license', 'sYS_INTERNAL_LAST_UPDATED_ON', 'contentCredits', 'consumerId', 'osId', 'qrCodeProcessId', 'idealScreenSize', 'contentDisposition', 'os', 'idealScreenDensity', 'depth'])
             }
           }
         },
@@ -136,8 +136,7 @@ class HierarchyService {
     console.log(data.result.content.identifier)
     return {
       nodesModified: instance.getFlatNodesModified(response.content, additionalMetaData),
-      hierarchy: instance.getFlatHierarchyObj(response.content),
-      'lastUpdatedBy': '95e4942d-cbe8-477d-aebd-ad8e6de4bfc8'
+      hierarchy: instance.getFlatHierarchyObj(response.content)
     };
   }
 
@@ -153,8 +152,7 @@ class HierarchyService {
     }
     return {
       nodesModified: instance.getFlatNodesModified(response.content, additionalMetaData),
-      hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData),
-      'lastUpdatedBy': '95e4942d-cbe8-477d-aebd-ad8e6de4bfc8'
+      hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData)
     }
   }
 
@@ -196,7 +194,7 @@ class HierarchyService {
         'root': (data.contentType === 'TextBook') ? true : false,
         'metadata': {
           ...(data.contentType === 'TextBook' && {
-            ..._.omit(data, ['children', 'identifier', 'framework', 'subject', 'medium', 'gradeLevel', 'board']),
+            ..._.omit(data, ['children', 'identifier']),
             'closedProgram': []
           }),
           ...(data.contentType === 'TextBookUnit' && {
