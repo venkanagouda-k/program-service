@@ -4,24 +4,6 @@ const envVariables = require("../envVariables");
 const axios = require("axios");
 
 class HierarchyService {
-  omitMetaData = [
-    "children",
-    "identifier",
-    "status",
-    "reservedDialcodes",
-    "dialcodes",
-    "license",
-    "sYS_INTERNAL_LAST_UPDATED_ON",
-    "contentCredits",
-    "consumerId",
-    "osId",
-    "qrCodeProcessId",
-    "idealScreenSize",
-    "contentDisposition",
-    "os",
-    "idealScreenDensity",
-    "depth"
-  ];
   filterExistingTextbooks(collectionIds, reqHeaders) {
     const url = `${envVariables.baseURL}/api/composite/v1/search`;
     const filterRequest = _.map(collectionIds, id => {
@@ -86,7 +68,24 @@ class HierarchyService {
         data: {
           request: {
             content: {
-              ..._.omit(collection.result.content, this.omitMetaData)
+              ..._.omit(collection.result.content, [
+                "children",
+                "identifier",
+                "status",
+                "reservedDialcodes",
+                "dialcodes",
+                "license",
+                "sYS_INTERNAL_LAST_UPDATED_ON",
+                "contentCredits",
+                "consumerId",
+                "osId",
+                "qrCodeProcessId",
+                "idealScreenSize",
+                "contentDisposition",
+                "os",
+                "idealScreenDensity",
+                "depth"
+              ])
             }
           }
         },
@@ -211,7 +210,24 @@ class HierarchyService {
         isNew: true,
         root: data.contentType === "TextBook" ? true : false,
         metadata: {
-          ..._.omit(data, this.omitMetaData),
+          ..._.omit(data, [
+            "children",
+            "identifier",
+            "status",
+            "reservedDialcodes",
+            "dialcodes",
+            "license",
+            "sYS_INTERNAL_LAST_UPDATED_ON",
+            "contentCredits",
+            "consumerId",
+            "osId",
+            "qrCodeProcessId",
+            "idealScreenSize",
+            "contentDisposition",
+            "os",
+            "idealScreenDensity",
+            "depth"
+          ]),
           programId: additionalMetaData.programId,
           allowedContentTypes: additionalMetaData.allowedContentTypes,
           openForContribution: true,
