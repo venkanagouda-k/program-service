@@ -10,6 +10,7 @@ class HierarchyService {
       const option = {
         url: url,
         method: "post",
+        headers: reqHeaders,
         data: {
           request: {
             filters: {
@@ -65,6 +66,7 @@ class HierarchyService {
       const option = {
         url,
         method: "post",
+        headers: reqHeaders,
         data: {
           request: {
             content: {
