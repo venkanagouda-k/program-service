@@ -892,7 +892,7 @@ async function programCopyCollections(req, response) {
     rspObj.errMsg = programMessages.COPY_COLLECTION.COPY.MISSING_MESSAGE;
     rspObj.responseCode = responseCode.CLIENT_ERROR;
     loggerError('Error due to missing request or program_id or request collections or request allowed_content_types or channel',
-    rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req )
+    rspObj.errCode, rspObj.errMsg, rspObj.responseCode, null, req )
     return response.status(400).send(errorResponse(rspObj))
   }
 
