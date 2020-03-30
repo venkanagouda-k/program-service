@@ -933,16 +933,18 @@ async function programCopyCollections(req, response) {
                     rspObj.responseCode = 'OK'
                     response.status(200).send(successResponse(rspObj))
                   }, error => {
-                    rspObj.errCode = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE,
-                      rspObj.errMsg = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE,
+                    rspObj.errCode = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
+                      rspObj.errMsg = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
                       rspObj.responseCode = responseCode.SERVER_ERROR
+                      console.log(error)
                     loggerError('Error updating hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                     return response.status(400).send(errorResponse(rspObj))
                   })
               }, error => {
-                rspObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE,
-                  rspObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE,
+                rspObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
+                  rspObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
                   rspObj.responseCode = responseCode.SERVER_ERROR
+                  console.log(error)
                 loggerError('Error fetching hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                 return response.status(400).send(errorResponse(rspObj))
               })
@@ -975,7 +977,7 @@ async function programCopyCollections(req, response) {
                     })
                     console.log(createdCollections);
                     const getBulkUpdateRequest = _.map(createdCollections, item => {
-                      return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData)
+                      return hierarchyService .newHierarchyUpdateRequest(item, additionalMetaData)
                     })
                     hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest, reqHeaders)
                       .subscribe(updateResult => {
@@ -986,32 +988,36 @@ async function programCopyCollections(req, response) {
                         rspObj.responseCode = 'OK'
                         response.status(200).send(successResponse(rspObj))
                       }, error => {
-                        rspObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE,
-                          rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE,
+                        rspObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
+                          rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
                           rspObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                          console.log(error)
                         loggerError('Error updating hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                         return response.status(400).send(errorResponse(rspObj))
                       })
                   }, error => {
-                    rspObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_CODE,
-                      rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_MESSAGE,
+                    rspObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_CODE;
+                      rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_MESSAGE;
                       rspObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                      console.log(error)
                     loggerError('Error creating collection', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                     return response.status(400).send(errorResponse(rspObj))
                   })
               }, (error) => {
-                rspObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE,
-                  rspObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE,
+                rspObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
+                  rspObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
                   rspObj.responseCode = responseCode.SERVER_ERROR
+                  console.log(error)
                 loggerError('Error fetching hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                 return response.status(400).send(errorResponse(rspObj))
               })
         }
       },
       (error) => {
-        rspObj.errCode = programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_CODE,
-          rspObj.errMsg = error.message || programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_MESSAGE,
+        rspObj.errCode = programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_CODE;
+          rspObj.errMsg = error.message || programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_MESSAGE;
           rspObj.responseCode = error.response.statusText || responseCode.SERVER_ERROR
+        console.log(error)
         loggerError('Error searching for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
         return response.status(error.response.status || 400).send(errorResponse(rspObj))
       }
