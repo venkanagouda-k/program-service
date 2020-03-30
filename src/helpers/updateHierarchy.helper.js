@@ -29,7 +29,8 @@ class HierarchyService {
   }
 
   bulkUpdateHierarchy(collections, reqHeaders) {
-    const url = `http://15.2.3.4:8080/learning-service/content/v3/hierarchy/update`;
+    const url = `${envVariables.LEARNING_SERVICE_URL}/content/v3/hierarchy/update`;
+
     const bulkRequest = _.map(collections, collection => {
       const createdBy = this.getCreatedBy(collection);
       const option = {
@@ -59,7 +60,7 @@ class HierarchyService {
   }
 
   createCollection(collections, reqHeaders) {
-    const url = `http://15.2.3.4:8080/learning-service/content/v3/create`;
+    const url = `${envVariables.LEARNING_SERVICE_URL}/content/v3/create`;
 
     const bulkRequest = _.map(collections, collection => {
       const option = {
