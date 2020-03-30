@@ -744,12 +744,9 @@ function createUserRecords(user, userOrgMapDetails, orgInfoList, callback) {
 
 function programSearch(req, response) {
   const fieldsToSelect = _.compact(_.split(_.get(req, 'query.fields'), ','));
-  console.log(fieldsToSelect)
   const requiredKeys = ['program_id', 'type', 'name', 'description', 'image_path']
   const searchCriteria = _.uniq([...requiredKeys, ...fieldsToSelect]);
-  console.log(searchCriteria)
   const searchQuery = _.get(req, 'body.request');
-  console.log(searchQuery)
   programDBModel.instance.program.findAsync(searchQuery, {
       allow_filtering: true,
       select: searchCriteria,
@@ -936,7 +933,7 @@ async function programCopyCollections(req, response) {
                     rspObj.errCode = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
                       rspObj.errMsg = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
                       rspObj.responseCode = responseCode.SERVER_ERROR
-                      console.log(error)
+                      console.log('Error updating hierarchy for collections', error)
                     loggerError('Error updating hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                     return response.status(400).send(errorResponse(rspObj))
                   })
@@ -944,7 +941,7 @@ async function programCopyCollections(req, response) {
                 rspObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
                   rspObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
                   rspObj.responseCode = responseCode.SERVER_ERROR
-                  console.log(error)
+                  console.log('Error fetching hierarchy for collections', error)
                 loggerError('Error fetching hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                 return response.status(400).send(errorResponse(rspObj))
               })
@@ -975,7 +972,6 @@ async function programCopyCollections(req, response) {
                       mapOriginalHierarchy.hierarchy.content.identifier = cr.config.params.identifier
                       return mapOriginalHierarchy;
                     })
-                    console.log(createdCollections);
                     const getBulkUpdateRequest = _.map(createdCollections, item => {
                       return hierarchyService .newHierarchyUpdateRequest(item, additionalMetaData)
                     })
@@ -989,25 +985,25 @@ async function programCopyCollections(req, response) {
                         response.status(200).send(successResponse(rspObj))
                       }, error => {
                         rspObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
-                          rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
-                          rspObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
-                          console.log(error)
+                        rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
+                        rspObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                        console.log('Error updating hierarchy for collections', error)
                         loggerError('Error updating hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                         return response.status(400).send(errorResponse(rspObj))
                       })
                   }, error => {
                     rspObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_CODE;
-                      rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_MESSAGE;
-                      rspObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
-                      console.log(error)
+                    rspObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_MESSAGE;
+                    rspObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                    console.log('Error creating collection', error)
                     loggerError('Error creating collection', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                     return response.status(400).send(errorResponse(rspObj))
                   })
               }, (error) => {
                 rspObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
-                  rspObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
-                  rspObj.responseCode = responseCode.SERVER_ERROR
-                  console.log(error)
+                rspObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
+                rspObj.responseCode = responseCode.SERVER_ERROR
+                console.log('Error fetching hierarchy for collections', error)
                 loggerError('Error fetching hierarchy for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
                 return response.status(400).send(errorResponse(rspObj))
               })
@@ -1015,9 +1011,9 @@ async function programCopyCollections(req, response) {
       },
       (error) => {
         rspObj.errCode = programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_CODE;
-          rspObj.errMsg = error.message || programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_MESSAGE;
-          rspObj.responseCode = error.response.statusText || responseCode.SERVER_ERROR
-        console.log(error)
+        rspObj.errMsg = error.message || programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_MESSAGE;
+        rspObj.responseCode = error.response.statusText || responseCode.SERVER_ERROR
+        console.log('Error searching for collections', error)
         loggerError('Error searching for collections', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
         return response.status(error.response.status || 400).send(errorResponse(rspObj))
       }
