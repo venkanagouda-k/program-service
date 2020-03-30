@@ -29,7 +29,7 @@ class HierarchyService {
   }
 
   bulkUpdateHierarchy(collections, reqHeaders) {
-    const url = `${envVariables.baseURL}/action/content/v3/hierarchy/update`;
+    const url = `http://knowledge-mw-service:5000/action/content/v3/hierarchy/update`;
 
     const bulkRequest = _.map(collections, collection => {
       const createdBy = this.getCreatedBy(collection);
@@ -60,7 +60,7 @@ class HierarchyService {
   }
 
   createCollection(collections, reqHeaders) {
-    const url = `${envVariables.baseURL}/action/content/v3/create`;
+    const url = `http://knowledge-mw-service:5000/action/content/v3/create`;
 
     const bulkRequest = _.map(collections, collection => {
       const option = {
