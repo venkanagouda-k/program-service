@@ -75,6 +75,9 @@ module.exports = function(sequelize, DataTypes) {
     },
     template_id: {
       type: DataTypes.TEXT
+    },
+    guidelines_document: {
+      type: DataTypes.TEXT
     }
   }, {
       timestamps: false,
