@@ -256,7 +256,10 @@ function programList(req, response) {
         limit: res_limit,
         include: [{
           model: model.program
-        }]
+        }],
+        order: [
+          ['updatedon', 'DESC']
+        ]
       })
       .then((prg_list) => {
         return response.status(200).send(successResponse({
