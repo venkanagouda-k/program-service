@@ -553,7 +553,7 @@ function getNominationsList(req, response) {
 }
 
 function getUsersDetails(req, userId) {
-  const url = `http://dock.sunbirded.org/api/reg/search`;
+  const url = `${envVariables.baseURL}/content/reg/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -581,7 +581,7 @@ function getUsersDetails(req, userId) {
 }
 
 function getOrgDetails(req, orgId) {
-  const url = `http://dock.sunbirded.org/api/reg/search`;
+  const url = `${envVariables.baseURL}/content/reg/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
