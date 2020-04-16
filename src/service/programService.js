@@ -282,6 +282,48 @@ function programList(req, response) {
           result: err
         }));
       });
+  } else if (data.request.filters && data.request.filters.role && data.request.filters.user_id) {
+    const promises = [];
+    _.forEach(data.request.filters.role, (role) => {
+       promises.push(
+        model.program.findAndCountAll({
+        where:{
+          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${data.request.filters.user_id}%')`)
+        },
+        limit: res_limit,
+        order: [
+          ['updatedon', 'DESC']
+        ]
+      })
+      )
+    })
+    Promise.all(promises)
+    .then(function (res) {
+      let aggregatedRes = [];
+      _.forEach(res, (response) => {
+        _.forEach(response.rows, row => aggregatedRes.push(row));
+      })
+      aggregatedRes = _.uniqBy(aggregatedRes, 'dataValues.program_id');
+      return response.status(200).send(successResponse({
+        apiId: 'api.program.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'OK',
+        result: {
+          count: aggregatedRes.length,
+          programs: aggregatedRes
+        }
+      }))
+    })
+    .catch(function (err) {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.program.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_LIST_PROGRAM',
+        result: err
+      }));
+    });
   } else {
     model.program.findAndCountAll({
         where: {
