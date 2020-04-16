@@ -516,8 +516,13 @@ function getNominationsList(req, response) {
     }).then(async function (result) {
       try {
         var userList = [];
+        var orgList = [];
         _.forEach(result, function (data) {
           userList.push(data.user_id);
+
+          if (data.organisation_id) {
+            orgList.push(data.user_id);
+          }
         })
         if (_.isEmpty(userList)) {
           return response.status(200).send(successResponse({
@@ -531,12 +536,27 @@ function getNominationsList(req, response) {
         const userMap = _.map(userList, user => {
           return getUsersDetails(req, user);
         })
-        forkJoin(...userMap).subscribe(resData => {
+
+        const orgMap = _.map(orgList, org => {
+          return getOrgDetails(req, org);
+        })
+
+        forkJoin(...userMap, ...orgMap).subscribe(([resData, orgData]) => {
+
           _.forEach(resData, function (data, index) {
             if (data.data.result) {
               result[index].dataValues.userData = data.data.result.User[0];
             }
           });
+
+          if (!_.isEmpty(orgList)) {
+            _.forEach(orgData, function (data, index) {
+              if (data.data.result) {
+                result[index].dataValues.orgData = data.data.result.Org[0];
+              }
+            });
+          }
+
           return response.status(200).send(successResponse({
             apiId: 'api.nomination.list',
             ver: '1.0',
@@ -602,6 +622,33 @@ function getUsersDetails(req, userId) {
   });
 }
 
+function getOrgDetails(req, orgId) {
+  const url = `${envVariables.baseURL}/content/reg/search`;
+  const reqData = {
+    "id": "open-saber.registry.search",
+    "ver": "1.0",
+    "ets": "11234",
+    "params": {
+      "did": "",
+      "key": "",
+      "msgid": ""
+    },
+    "request": {
+      "entityType": ["Org"],
+      "filters": {
+        "osid": {
+          "eq": orgId
+        }
+      }
+    }
+  }
+  return axios({
+    method: 'post',
+    url: url,
+    headers: req.headers,
+    data: reqData
+  });
+}
 
 function getUsersDetailsById(req, response) {
 
