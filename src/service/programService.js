@@ -507,7 +507,7 @@ function getNominationsList(req, response) {
             }
           });
 
-          if (_.isEmpty(orgList)) {
+          if (!_.isEmpty(orgList)) {
             _.forEach(orgData, function (data, index) {
               if (data.data.result) {
                 result[index].dataValues.orgData = data.data.result.Org[0];
