@@ -973,7 +973,7 @@ async function programCopyCollections(req, response) {
                       return mapOriginalHierarchy;
                     })
                     const getBulkUpdateRequest = _.map(createdCollections, item => {
-                      return hierarchyService .newHierarchyUpdateRequest(item, additionalMetaData)
+                      return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData)
                     })
                     hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest, reqHeaders)
                       .subscribe(updateResult => {
