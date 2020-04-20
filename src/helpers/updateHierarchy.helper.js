@@ -140,7 +140,7 @@ class HierarchyService {
         response.content,
         additionalMetaData
       ),
-      hierarchy: instance.getFlatHierarchyObj(response.content)
+      hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData)
     };
   }
 
