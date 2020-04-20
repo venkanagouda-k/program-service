@@ -51,6 +51,9 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.TEXT,
       allowNull: false
     },
+    rolemapping: {
+      type: DataTypes.JSON
+    },
     createdby: {
       type: DataTypes.STRING
     },
@@ -74,6 +77,9 @@ module.exports = function(sequelize, DataTypes) {
       defaultValue: 'DIKSHA'
     },
     template_id: {
+      type: DataTypes.TEXT
+    },
+    guidelines_url: {
       type: DataTypes.TEXT
     }
   }, {

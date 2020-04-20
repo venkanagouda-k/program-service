@@ -256,7 +256,10 @@ function programList(req, response) {
         limit: res_limit,
         include: [{
           model: model.program
-        }]
+        }],
+        order: [
+          ['updatedon', 'DESC']
+        ]
       })
       .then((prg_list) => {
         return response.status(200).send(successResponse({
@@ -279,6 +282,48 @@ function programList(req, response) {
           result: err
         }));
       });
+  } else if (data.request.filters && data.request.filters.role && data.request.filters.user_id) {
+    const promises = [];
+    _.forEach(data.request.filters.role, (role) => {
+       promises.push(
+        model.program.findAndCountAll({
+        where:{
+          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${data.request.filters.user_id}%')`)
+        },
+        limit: res_limit,
+        order: [
+          ['updatedon', 'DESC']
+        ]
+      })
+      )
+    })
+    Promise.all(promises)
+    .then(function (res) {
+      let aggregatedRes = [];
+      _.forEach(res, (response) => {
+        _.forEach(response.rows, row => aggregatedRes.push(row));
+      })
+      aggregatedRes = _.uniqBy(aggregatedRes, 'dataValues.program_id');
+      return response.status(200).send(successResponse({
+        apiId: 'api.program.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'OK',
+        result: {
+          count: aggregatedRes.length,
+          programs: aggregatedRes
+        }
+      }))
+    })
+    .catch(function (err) {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.program.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_LIST_PROGRAM',
+        result: err
+      }));
+    });
   } else {
     model.program.findAndCountAll({
         where: {
@@ -471,8 +516,13 @@ function getNominationsList(req, response) {
     }).then(async function (result) {
       try {
         var userList = [];
+        var orgList = [];
         _.forEach(result, function (data) {
           userList.push(data.user_id);
+
+          if (data.organisation_id) {
+            orgList.push(data.user_id);
+          }
         })
         if (_.isEmpty(userList)) {
           return response.status(200).send(successResponse({
@@ -486,12 +536,27 @@ function getNominationsList(req, response) {
         const userMap = _.map(userList, user => {
           return getUsersDetails(req, user);
         })
-        forkJoin(...userMap).subscribe(resData => {
+
+        const orgMap = _.map(orgList, org => {
+          return getOrgDetails(req, org);
+        })
+
+        forkJoin(...userMap, ...orgMap).subscribe(([resData, orgData]) => {
+
           _.forEach(resData, function (data, index) {
             if (data.data.result) {
               result[index].dataValues.userData = data.data.result.User[0];
             }
           });
+
+          if (!_.isEmpty(orgList)) {
+            _.forEach(orgData, function (data, index) {
+              if (data.data.result) {
+                result[index].dataValues.orgData = data.data.result.Org[0];
+              }
+            });
+          }
+
           return response.status(200).send(successResponse({
             apiId: 'api.nomination.list',
             ver: '1.0',
@@ -557,6 +622,33 @@ function getUsersDetails(req, userId) {
   });
 }
 
+function getOrgDetails(req, orgId) {
+  const url = `${envVariables.baseURL}/content/reg/search`;
+  const reqData = {
+    "id": "open-saber.registry.search",
+    "ver": "1.0",
+    "ets": "11234",
+    "params": {
+      "did": "",
+      "key": "",
+      "msgid": ""
+    },
+    "request": {
+      "entityType": ["Org"],
+      "filters": {
+        "osid": {
+          "eq": orgId
+        }
+      }
+    }
+  }
+  return axios({
+    method: 'post',
+    url: url,
+    headers: req.headers,
+    data: reqData
+  });
+}
 
 function getUsersDetailsById(req, response) {
 
