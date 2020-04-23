@@ -544,15 +544,15 @@ function getNominationsList(req, response) {
         forkJoin(...userMap, ...orgMap).subscribe((resData) => {
 
           _.forEach(resData, function (data) {
-            if (data.data.result && data.data.result.User.length > 0) {
+            if (data.data.result && data.data.result.User) {
               const userData = data.data.result.User[0];
-              const index = result.map(function(e) { return e.user_id; }).indexOf(userData.userId);
+              const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
               result[index].dataValues.userData = userData;
             }
 
-            if (data.data.result && data.data.result.Org.length > 0) {
+            if (data.data.result && data.data.result.Org) {
               const orgData = data.data.result.Org[0];
-              const index = result.map(function(e) { return e.organisation_id; }).indexOf(orgData.osid);
+              const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
               if (index !== -1) {
                result[index].dataValues.orgData = orgData;
               }
