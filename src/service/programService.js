@@ -521,7 +521,7 @@ function getNominationsList(req, response) {
           userList.push(data.user_id);
 
           if (data.organisation_id) {
-            orgList.push(data.user_id);
+            orgList.push(data.organisation_id);
           }
         })
         if (_.isEmpty(userList)) {
@@ -539,23 +539,25 @@ function getNominationsList(req, response) {
 
         const orgMap = _.map(orgList, org => {
           return getOrgDetails(req, org);
-        })
+        });
 
-        forkJoin(...userMap, ...orgMap).subscribe(([resData, orgData]) => {
+        forkJoin(...userMap, ...orgMap).subscribe((resData) => {
 
-          _.forEach(resData, function (data, index) {
-            if (data.data.result) {
-              result[index].dataValues.userData = data.data.result.User[0];
+          _.forEach(resData, function (data) {
+            if (data.data.result && data.data.result.User) {
+              const userData = data.data.result.User[0];
+              const index = result.map(function(e) { return e.user_id; }).indexOf(userData.userId);
+              result[index].dataValues.userData = userData;
+            }
+
+            if (data.data.result && data.data.result.Org) {
+              const orgData = data.data.result.Org[0];
+              const index = result.map(function(e) { return e.organisation_id; }).indexOf(orgData.osid);
+              if (index !== -1) {
+               result[index].dataValues.orgData = orgData;
+              }
             }
           });
-
-          if (!_.isEmpty(orgList)) {
-            _.forEach(orgData, function (data, index) {
-              if (data.data.result) {
-                result[index].dataValues.orgData = data.data.result.Org[0];
-              }
-            });
-          }
 
           return response.status(200).send(successResponse({
             apiId: 'api.nomination.list',
