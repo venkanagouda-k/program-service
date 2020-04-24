@@ -1,6 +1,6 @@
 
 const envVariables = {
-    baseURL: process.env.dock_base_url || 'http://dock.sunbirded.org',
+    baseURL: process.env.dock_base_url || 'https://dock.sunbirded.org',
     SUNBIRD_URL: process.env.sunbird_base_url || 'https://dev.sunbirded.org',
     SUNBIRD_PORTAL_API_AUTH_TOKEN: process.env.sunbird_api_auth_token,
     DOCK_CHANNEL: process.env.dock_channel || 'sunbird',
