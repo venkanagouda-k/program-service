@@ -229,6 +229,9 @@ class HierarchyService {
             "idealScreenDensity",
             "depth"
           ]),
+          ...(data.contentType === "TextBook" && {
+            chapterCount : data.children ? data.children.length : 0
+          }),
           programId: additionalMetaData.programId,
           allowedContentTypes: additionalMetaData.allowedContentTypes,
           openForContribution: true,
