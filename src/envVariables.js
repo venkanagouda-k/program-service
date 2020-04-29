@@ -1,6 +1,6 @@
 
 const envVariables = {
-    baseURL: process.env.dock_base_url || 'http://dock.sunbirded.org',
+    baseURL: process.env.dock_base_url || 'https://dock.sunbirded.org',
     SUNBIRD_URL: process.env.sunbird_base_url || 'https://dev.sunbirded.org',
     SUNBIRD_PORTAL_API_AUTH_TOKEN: process.env.sunbird_api_auth_token,
     DOCK_CHANNEL: process.env.dock_channel || 'sunbird',
@@ -14,6 +14,9 @@ const envVariables = {
         password: process.env.sunbird_program_db_password || 'password',
         port: process.env.sunbird_program_db_port || 5432,
         dialect: process.env.sunbird_program_db_dialect || "postgres",
+        pool: { 
+            max: process.env.sunbird_program_db_pool || 100
+        }
     }
 }
 module.exports = envVariables;
