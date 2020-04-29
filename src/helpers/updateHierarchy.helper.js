@@ -203,11 +203,14 @@ class HierarchyService {
 
   getFlatNodesModified(data, additionalMetaData) {
     let instance = this;
+    let nodeId;
     if (data) {
       if (additionalMetaData.isFirstTime && data.contentType === "TextBook") {
-        data.identifier = additionalMetaData.identifier;
+        nodeId = additionalMetaData.identifier;
+      } else {
+        nodeId = data.identifier;
       }
-      instance.nodeModified[data.identifier] = {
+      instance.nodeModified[nodeId] = {
         isNew: true,
         root: data.contentType === "TextBook" ? true : false,
         metadata: {
@@ -236,9 +239,9 @@ class HierarchyService {
           allowedContentTypes: additionalMetaData.allowedContentTypes,
           openForContribution: true,
           channel: envVariables.DOCK_CHANNEL || "sunbird",
-          origin: data.identifier,
+          origin: data.origin || data.identifier,
           originData: {
-            channel: data.channel
+            channel: data.originData ? data.originData.channel : data.channel
           }
         }
       };
