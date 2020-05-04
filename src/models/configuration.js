@@ -15,8 +15,20 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: false
     },
     status: {
-      type: DataTypes.ENUM("active", "disabled"),
+      type: DataTypes.ENUM("active", "inactive"),
       allowNull: false
+    },
+    createdby: {
+      type: DataTypes.STRING
+    },
+    updatedby: {
+      type: DataTypes.STRING
+    },
+    createdon: {
+      type: DataTypes.DATE
+    },
+    updatedon: {
+      type: DataTypes.DATE
     }
   }, {
     timestamps: false,
