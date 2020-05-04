@@ -123,7 +123,9 @@ function updateProgram(req, response) {
   const updateQuery = {
     where: {
       program_id: data.request.program_id
-    }
+    },
+    returning: true,
+    individualHooks: true
   };
   const updateValue = _.cloneDeep(req.body.request);
   if (!updateValue.updatedon) {
@@ -429,7 +431,9 @@ function updateNomination(req, response) {
     where: {
       program_id: data.request.program_id,
       user_id: data.request.user_id
-    }
+    },
+    returning: true,
+    individualHooks: true
   };
   const updateValue = req.body.request;
   if (!updateValue.updatedon) {

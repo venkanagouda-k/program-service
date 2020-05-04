@@ -9,6 +9,7 @@ const createError = require('http-errors')
   bodyParser = require('body-parser'),
   envVariables = require('./envVariables'),
   port = envVariables.port;
+  const telemetryService = require('./service/telemetryService');
 
   const createAppServer = () => {
     const app = express();
@@ -31,4 +32,7 @@ const createError = require('http-errors')
   }
 
 const app = createAppServer();
-app.listen(port, () => console.log(`program-service is running in test env on port ${port} with ${process.pid} pid`));
+app.listen(port, () => {
+  console.log(`program-service is running in test env on port ${port} with ${process.pid} pid`);
+  telemetryService.initializeTelemetryService();
+});

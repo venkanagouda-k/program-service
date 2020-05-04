@@ -14,6 +14,11 @@ const envVariables = {
         password: process.env.sunbird_program_db_password || 'password',
         port: process.env.sunbird_program_db_port || 5432,
         dialect: process.env.sunbird_program_db_dialect || "postgres",
+    },
+    telemetryConfig: {
+        host: '',
+        endpoint: '',
+        method: ''
     }
 }
 module.exports = envVariables;
