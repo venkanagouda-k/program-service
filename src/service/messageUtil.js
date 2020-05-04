@@ -725,6 +725,17 @@ exports.CONTENT_TYPE = {
   }
 }
 
+exports.CONFIGURATION = {
+  SEARCH: {
+    MISSING_CODE: 'ERR_SEARCHING_CONFIGURATION',
+    MISSING_MESSAGE: 'Required fields like key, status to search for configuration are missing',
+  },
+  FETCH: {
+    FAILED_CODE: 'ERR_GETTING_CONFIGURATION_FAILED',
+    FAILED_MESSAGE: 'Unable to fetch configuration'
+  }
+}
+
 exports.EXTERNAL_URL_META = {
   FETCH: {
     MISSING_CODE: 'ERR_FETCH_URLMETA_MISSING',
