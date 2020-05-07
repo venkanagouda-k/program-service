@@ -19,7 +19,7 @@ var async = require('async')
 
 
 const queryRes_Max = 1000;
-const queryRes_Min = 200;
+const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
 
 const registryService = new RegistryService()
