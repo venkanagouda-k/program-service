@@ -18,8 +18,8 @@ const RegistryService = require('./registryService')
 var async = require('async')
 
 
-const queryRes_Max = 500;
-const queryRes_Min = 100;
+const queryRes_Max = 1000;
+const queryRes_Min = 200;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
 
 const registryService = new RegistryService()
