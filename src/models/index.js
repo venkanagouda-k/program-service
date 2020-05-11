@@ -4,6 +4,8 @@ const Sequelize = require('sequelize')
       fs = require('fs');
       basename  = path.basename(module.filename);
 
+const HelperService = require('../helpers/helperService');
+
 var db = {};
 var sequelize = new Sequelize(envVariables.config.database, envVariables.config.user, envVariables.config.password, envVariables.config);
 
@@ -21,5 +23,7 @@ db.Sequelize = Sequelize;
 
 db.program.hasMany(db.nomination, {foreignKey: 'program_id'});
 db.nomination.belongsTo(db.program, {foreignKey: 'program_id'});
+
+HelperService.AttachModelHooks(db);
 
 module.exports = db;

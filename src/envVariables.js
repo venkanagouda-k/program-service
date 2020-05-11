@@ -18,6 +18,11 @@ const envVariables = {
         pool: { 
             max: process.env.sunbird_program_db_pool || 100
         }
+    },
+    telemetryConfig: {
+        host: process.env.telemetry_service_host,
+        endpoint: process.env.telemetry_service_endpoint,
+        method: 'POST'
     }
 }
 module.exports = envVariables;
