@@ -598,7 +598,7 @@ function getNominationsList(req, response) {
 }
 
 function getUsersDetails(req, userId) {
-  const url = `${envVariables.baseURL}/content/reg/search`;
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -626,7 +626,7 @@ function getUsersDetails(req, userId) {
 }
 
 function getOrgDetails(req, orgId) {
-  const url = `${envVariables.baseURL}/content/reg/search`;
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",

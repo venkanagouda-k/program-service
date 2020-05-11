@@ -7,6 +7,7 @@ const envVariables = {
     port: process.env.sunbird_program_port || 6000,
     level: process.env.sunbird_service_log_level || 'info',
     LEARNING_SERVICE_URL: process.env.learning_service_url,
+    OPENSABER_SERVICE_URL: process.env.opensaber_service_url,
     config: {
         user: process.env.sunbird_program_db_user || "postgres",
         host: process.env.sunbird_program_db_host || "localhost",
