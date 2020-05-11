@@ -19,9 +19,9 @@ const envVariables = {
         }
     },
     telemetryConfig: {
-        host: '',
-        endpoint: '',
-        method: ''
+        host: process.env.telemetry_service_host,
+        endpoint: process.env.telemetry_service_endpoint,
+        method: 'POST'
     }
 }
 module.exports = envVariables;

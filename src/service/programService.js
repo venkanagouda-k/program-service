@@ -213,6 +213,7 @@ function programList(req, response) {
   var data = req.body
   var rspObj = req.rspObj
   var res_limit = queryRes_Min;
+  var res_offset = data.request.offset || 0;
   if (!data.request || !data.request.filters) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
@@ -255,6 +256,7 @@ function programList(req, response) {
         where: {
           user_id: data.request.filters.enrolled_id.user_id
         },
+        offset: res_offset,
         limit: res_limit,
         include: [{
           model: model.program
@@ -292,6 +294,7 @@ function programList(req, response) {
         where:{
           $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${data.request.filters.user_id}%')`)
         },
+        offset: res_offset,
         limit: res_limit,
         order: [
           ['updatedon', 'DESC']
@@ -331,6 +334,7 @@ function programList(req, response) {
         where: {
           ...data.request.filters
         },
+        offset: res_offset,
         limit: res_limit,
         order: [
           ['updatedon', 'DESC']
@@ -479,6 +483,7 @@ function getNominationsList(req, response) {
   var data = req.body;
   var rspObj = req.rspObj;
   var res_limit = queryRes_Min;
+  var res_offset = data.request.offset || 0;
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
@@ -513,6 +518,7 @@ function getNominationsList(req, response) {
       where: {
         ...findQuery
       },
+      offset: res_offset,
       limit: res_limit,
       order: [
         ['updatedon', 'DESC']
