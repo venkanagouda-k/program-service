@@ -19,7 +19,8 @@ function generateAuditEvent(DBinstance, model, action) {
     const event = {};
         event['context'] = {
            pdata: telemetryEventConfig.pdata,
-           env: model.name
+           env: model.name,
+           channel: ''
         }
         event['edata'] = {
             state: DBinstance.status || '',
