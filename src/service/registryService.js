@@ -1,5 +1,5 @@
 const envVariables = require('../envVariables')
-const registryUrl = envVariables['baseURL']
+const registryUrl = envVariables['OPENSABER_SERVICE_URL']
 const axios = require('axios');
 
 
@@ -10,7 +10,7 @@ class RegistryService {
 
     addRecord(value, callback) {
       const headers = this.getDefaultHeaders()
-        axios.post(registryUrl+'/content/reg/add', value.body, headers)
+        axios.post(registryUrl+'/add', value.body, headers)
           .then((res) =>{
             callback(null, res)
           },
@@ -23,7 +23,7 @@ class RegistryService {
     updateRecord(value, callback) {
       const  headers = this.getDefaultHeaders()
 
-        axios.post(registryUrl+'/content/reg/update', value.body, headers)
+        axios.post(registryUrl+'/update', value.body, headers)
         .then((res) =>{
           callback(null, res)
         },
@@ -36,7 +36,7 @@ class RegistryService {
     readRecord(value, callback) {
       const headers = this.getDefaultHeaders()
 
-        axios.post(registryUrl+'/content/reg/read', value.body, headers)
+        axios.post(registryUrl+'/read', value.body, headers)
         .then((res) =>{
           callback(null, res)
         },
@@ -48,7 +48,7 @@ class RegistryService {
     searchRecord(value, callback) {
         const headers = this.getDefaultHeaders()
 
-        axios.post(registryUrl+'/content/reg/search', value.body, headers)
+        axios.post(registryUrl+'/search', value.body, headers)
         .then((res) =>{
           callback(null, res)
         },
@@ -60,7 +60,7 @@ class RegistryService {
     searchAuditRecords(value, callback) {
       const  headers = this.getDefaultHeaders()
 
-        axios.post(registryUrl+"/content/reg/audit", value.body, headers)
+        axios.post(registryUrl+"/audit", value.body, headers)
         .then((res) =>{
           callback(null, res)
         },

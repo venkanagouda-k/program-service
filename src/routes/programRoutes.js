@@ -63,4 +63,12 @@ module.exports = function (app) {
   app.route(BASE_URL + '/collection/copy')
   .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
     programService.programCopyCollectionAPI)
+
+  app.route(BASE_URL + '/configuration/list')
+  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+    programService.getAllConfigurationsAPI)
+
+  app.route(BASE_URL + '/configuration/search')
+  .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+    programService.getConfigurationByKeyAPI)
 }

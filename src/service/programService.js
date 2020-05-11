@@ -7,6 +7,7 @@ const Sequelize = require('sequelize');
 const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
 const contentTypeMessages = messageUtils.CONTENT_TYPE;
+const configurationMessages = messageUtils.CONFIGURATION;
 const model = require('../models');
 const {
   forkJoin
@@ -17,8 +18,8 @@ const RegistryService = require('./registryService')
 var async = require('async')
 
 
-const queryRes_Max = 500;
-const queryRes_Min = 100;
+const queryRes_Max = 1000;
+const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
 
 const registryService = new RegistryService()
@@ -607,7 +608,7 @@ function getNominationsList(req, response) {
 }
 
 function getUsersDetails(req, userId) {
-  const url = `${envVariables.baseURL}/content/reg/search`;
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -635,7 +636,7 @@ function getUsersDetails(req, userId) {
 }
 
 function getOrgDetails(req, orgId) {
-  const url = `${envVariables.baseURL}/content/reg/search`;
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -903,6 +904,68 @@ function getProgramContentTypes(req, response) {
           error
         }
       }, req)
+      return response.status(400).send(errorResponse(rspObj));
+    })
+}
+
+function getAllConfigurations(req, response) {
+  var rspObj = req.rspObj;
+  rspObj.errCode = configurationMessages.FETCH.FAILED_CODE
+  rspObj.errMsg = configurationMessages.FETCH.FAILED_MESSAGE
+  rspObj.responseCode = configurationMessages.SERVER_ERROR
+  logger.debug({
+    msg: 'Request to fetch program configuration'
+  }, req)
+
+  model.configuration.findAndCountAll()
+    .then(res => {
+      rspObj.result = {
+        count: res.count,
+        configuration: res.rows
+      }
+      rspObj.responseCode = 'OK'
+      return response.status(200).send(successResponse(rspObj))
+    }).catch(error => {
+      loggerError('Error fetching program configurations',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req);
+      return response.status(400).send(errorResponse(rspObj));
+    })
+}
+
+function getConfigurationByKey(req, response) {
+  var rspObj = req.rspObj;
+  var data = req.body;
+  if(!data || !data.request || !data.request.key  || !data.request.status) {
+    rspObj.errCode = configurationMessages.SEARCH.MISSING_CODE
+    rspObj.errMsg = configurationMessages.SEARCH.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    loggerError('Error due to missing request or request key or status',
+    rspObj.errCode, rspObj.errMsg, rspObj.responseCode, null, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  rspObj.errCode = configurationMessages.FETCH.FAILED_CODE
+  rspObj.errMsg = configurationMessages.FETCH.FAILED_MESSAGE
+  rspObj.responseCode = configurationMessages.SERVER_ERROR
+  logger.debug({
+    msg: 'Request to fetch program configuration'
+  }, req)
+
+  model.configuration.findAll({
+    where: {
+      key: data.request.key,
+      status: data.request.status
+    }
+  })
+    .then(res => {
+      const result = _.first(res)
+      rspObj.result = {
+        configuration: result ? result.dataValues : []
+      }
+      rspObj.responseCode = 'OK'
+      return response.status(200).send(successResponse(rspObj))
+    }).catch(error => {
+      loggerError('Error fetching program configurations',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req);
       return response.status(400).send(errorResponse(rspObj));
     })
 }
@@ -1191,3 +1254,5 @@ module.exports.programGetContentTypesAPI = getProgramContentTypes
 module.exports.getUserDetailsAPI = getUsersDetailsById
 module.exports.healthAPI = health
 module.exports.programCopyCollectionAPI = programCopyCollections;
+module.exports.getAllConfigurationsAPI = getAllConfigurations;
+module.exports.getConfigurationByKeyAPI = getConfigurationByKey;
