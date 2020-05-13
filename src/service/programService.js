@@ -514,6 +514,31 @@ function getNominationsList(req, response) {
         result: err
       }));
     })
+  }else if (data.request.limit === 0) {  
+    model.nomination.findAll({
+      where: {
+        ...findQuery
+      },
+      attributes: [...data.request.fields || []]
+    }).then(async (result) => {
+      let aggregatedRes = await aggregatedNominationCount(data, result);
+      
+      return response.status(200).send(successResponse({
+        apiId: 'api.nomination.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'OK',
+        result: aggregatedRes
+      }))
+    }).catch((err) => {
+      return response.status(400).send(errorResponse({
+        apiId: 'api.nomination.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_NOMINATION_LIST',
+        result: err
+      }));
+    })
   } else {
     model.nomination.findAll({
       where: {
@@ -607,6 +632,39 @@ function getNominationsList(req, response) {
   }
 }
 
+function aggregatedNominationCount(data, result) {
+  return new Promise((resolve, reject) => {
+    try {
+     let aggregatedRes = {}
+     aggregatedRes['nomination'] = { count: result.length }
+     const groupData =  _.reduce(result, (final, instance) => {
+        _.forEach(data.request.fields, (field) => {
+          field !== 'status' ?
+            final[field] = _.compact(_.uniq(_.flattenDeep([...final[field] || [], instance[field]]))) :
+               final[field] = [...final[field] || [], instance[field]];
+        });
+        return final;
+     }, {});
+     aggregatedRes.nomination['fields'] = _.map(data.request.fields, (field) => {
+       const obj = {name: field};
+       if (field === 'status') {
+         obj['fields'] = {}
+         const temp = _.groupBy(groupData[field]);
+         _.mapKeys(temp, (val, key) => {
+           obj.fields[key] = val.length
+         })
+       }else {
+         obj['count'] = groupData[field].length;
+       }
+       return obj;
+     })
+     resolve(aggregatedRes);
+    } catch(err) {
+      reject(err);
+    }
+  })
+ }
+ 
 function getUsersDetails(req, userId) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
