@@ -569,29 +569,26 @@ function getNominationsList(req, response) {
             result: result
           }))
         }
-        const userMap = _.map(userList, user => {
-          return getUsersDetails(req, user);
-        })
 
-        const orgMap = _.map(orgList, org => {
-          return getOrgDetails(req, org);
-        });
-
-        forkJoin(...userMap, ...orgMap).subscribe((resData) => {
+        forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList)).subscribe((resData) => {
 
           _.forEach(resData, function (data) {
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
-              const userData = data.data.result.User[0];
-              const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
-              result[index].dataValues.userData = userData;
+              _.forEach(data.data.result.User, (userData) => {
+                const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
+                if (index !== -1) {
+                  result[index].dataValues.userData = userData;
+                }
+              })
             }
 
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.Org'))) {
-              const orgData = data.data.result.Org[0];
-              const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
-              if (index !== -1) {
-               result[index].dataValues.orgData = orgData;
-              }
+              _.forEach(data.data.result.Org, (orgData) => {
+                const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
+                if (index !== -1) {
+                result[index].dataValues.orgData = orgData;
+                }
+              })
             }
           });
 
@@ -665,7 +662,7 @@ function aggregatedNominationCount(data, result) {
   })
  }
  
-function getUsersDetails(req, userId) {
+function getUsersDetails(req, userList) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
@@ -680,7 +677,7 @@ function getUsersDetails(req, userId) {
       "entityType": ["User"],
       "filters": {
         "userId": {
-          "eq": userId
+          "or": userList
         }
       }
     }
@@ -693,7 +690,7 @@ function getUsersDetails(req, userId) {
   });
 }
 
-function getOrgDetails(req, orgId) {
+function getOrgDetails(req, orgList) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
@@ -708,7 +705,7 @@ function getOrgDetails(req, orgId) {
       "entityType": ["Org"],
       "filters": {
         "osid": {
-          "eq": orgId
+          "or": orgList
         }
       }
     }
