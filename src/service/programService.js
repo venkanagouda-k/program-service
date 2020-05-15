@@ -569,16 +569,8 @@ function getNominationsList(req, response) {
             result: result
           }))
         }
-        // getUsersDetails(userList);
-        // const userMap = _.map(userList, user => {
-        //   return getUsersDetails(req, user);
-        // })
 
-        // const orgMap = _.map(orgList, org => {
-        //   return getOrgDetails(req, org);
-        // });
-
-        forkJoin(getUsersDetails(userList), getOrgDetails(orgList)).subscribe((resData) => {
+        forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList)).subscribe((resData) => {
 
           _.forEach(resData, function (data) {
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
