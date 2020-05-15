@@ -573,29 +573,28 @@ function getNominationsList(req, response) {
             result: result
           }))
         }
-        const userMap = _.map(userList, user => {
-          return getUsersDetails(req, user);
+        orgList = _.map(orgList, o => {
+          return o.replace(/^1-+/, '')
         })
 
-        const orgMap = _.map(orgList, org => {
-          return getOrgDetails(req, org);
-        });
-
-        forkJoin(...userMap, ...orgMap).subscribe((resData) => {
+        forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList)).subscribe((resData) => {
 
           _.forEach(resData, function (data) {
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
-              const userData = data.data.result.User[0];
-              const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
-              result[index].dataValues.userData = userData;
+              _.forEach(data.data.result.User, (userData) => {
+                const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
+                if (index !== -1) {
+                  result[index].dataValues.userData = userData;
+                }
+              })
             }
-
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.Org'))) {
-              const orgData = data.data.result.Org[0];
-              const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
-              if (index !== -1) {
-               result[index].dataValues.orgData = orgData;
-              }
+              _.forEach(data.data.result.Org, (orgData) => {
+                const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
+                if (index !== -1) {
+                result[index].dataValues.orgData = orgData;
+                }
+              })
             }
           });
 
@@ -669,15 +668,14 @@ function aggregatedNominationCount(data, result) {
   })
  }
 
-
-function downloadNominationList(req, response) {
+ function downloadNominationList(req, response) {
   var data = req.body;
   var rspObj = req.rspObj;
+  rspObj.errCode = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_CODE;
+  rspObj.errMsg = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_MESSAGE;
+  rspObj.responseCode = responseCode.CLIENT_ERROR;
   if(!data || !data.request || !data.request.filters ||
     !data.request.filters.program_id || !data.request.filters.program_name || !data.request.filters.status) {
-    rspObj.errCode = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_CODE;
-    rspObj.errMsg = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_MESSAGE;
-    rspObj.responseCode = responseCode.CLIENT_ERROR;
     loggerError('Error due to missing request or program_id, status or program_name',
     rspObj.errCode, rspObj.errMsg, rspObj.responseCode, null, req)
     return response.status(400).send(errorResponse(rspObj))
@@ -714,6 +712,9 @@ function downloadNominationList(req, response) {
             rspObj.responseCode = 'OK'
             return response.status(200).send(successResponse(rspObj))
           }
+          orgList = _.map(orgList, o => {
+            return o.replace(/^1-+/, '')
+          })
           forkJoin(programServiceHelper.searchContent(findQuery.program_id, true, reqHeaders), getUsersDetails(req, userList), getOrgDetails(req, orgList))
             .subscribe(
               (promiseData) => {
