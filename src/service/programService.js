@@ -1,6 +1,7 @@
 const _ = require("lodash");
 const uuid = require("uuid/v1");
 const logger = require('sb_logger_util_v2');
+const SbCacheManager = require('sb_cache_manager');
 const messageUtils = require('./messageUtil');
 const respUtil = require('response_util');
 const Sequelize = require('sequelize');
@@ -15,6 +16,7 @@ const {
 const axios = require('axios');
 const envVariables = require('../envVariables');
 const RegistryService = require('./registryService')
+const ProgramServiceHelper = require('../helpers/programHelper');
 var async = require('async')
 
 
@@ -22,6 +24,8 @@ const queryRes_Max = 1000;
 const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
 
+const programServiceHelper = new ProgramServiceHelper();
+const cacheManager = new SbCacheManager({});
 const registryService = new RegistryService()
 const hierarchyService = new HierarchyService()
 
@@ -664,8 +668,126 @@ function aggregatedNominationCount(data, result) {
     }
   })
  }
- 
-function getUsersDetails(req, userId) {
+
+
+function downloadNominationList(req, response) {
+  var data = req.body;
+  var rspObj = req.rspObj;
+  if(!data || !data.request || !data.request.filters ||
+    !data.request.filters.program_id || !data.request.filters.program_name || !data.request.filters.status) {
+    rspObj.errCode = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_CODE;
+    rspObj.errMsg = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_MESSAGE;
+    rspObj.responseCode = responseCode.CLIENT_ERROR;
+    loggerError('Error due to missing request or program_id, status or program_name',
+    rspObj.errCode, rspObj.errMsg, rspObj.responseCode, null, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  const reqHeaders = req.headers;
+  const findQuery = data.request.filters ? data.request.filters : {};
+  cacheManager.get(findQuery.program_id, function (err, cacheData) {
+    if(err || !cacheData) {
+      model.nomination.findAll({
+        where: {
+          ..._.omit(findQuery, ["program_name"])
+        },
+        offset: 0,
+        limit: 1000,
+        order: [
+          ['updatedon', 'DESC']
+        ]
+      }).then(async function(result) {
+        try {
+          let userList = [];
+          let orgList = [];
+          let relatedContents = [];
+          let nominationSampleCounts = {};
+          _.forEach(result, r => {
+            userList.push(r.user_id);
+            if(r.organisation_id) {
+              orgList.push(r.organisation_id);
+            }
+          })
+          if(_.isEmpty(userList)) {
+            rspObj.result = {
+              tableData: []
+            }
+            rspObj.responseCode = 'OK'
+            return response.status(200).send(successResponse(rspObj))
+          }
+          forkJoin(programServiceHelper.searchContent(findQuery.program_id, true, reqHeaders), getUsersDetails(req, userList), getOrgDetails(req, orgList))
+            .subscribe(
+              (promiseData) => {
+                const contentResult = _.first(promiseData);
+                if (contentResult && contentResult.data && contentResult.data.result && contentResult.data.result.content) {
+                      const contents = _.get(contentResult, 'data.result.content');
+                      relatedContents = contents;
+                }
+                nominationSampleCounts = programServiceHelper.setNominationSampleCounts(relatedContents);
+                  const userAndOrgResult = _.tail(promiseData, 2);
+                  debugger
+                _.forEach(userAndOrgResult, function (data) {
+                  if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
+                    _.forEach(data.data.result.User, (userData) => {
+                      const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
+                      if (index !== -1) {
+                        result[index].dataValues.userData = userData;
+                      }
+                    })
+                  }
+                  if (data.data.result && !_.isEmpty(_.get(data, 'data.result.Org'))) {
+                    _.forEach(data.data.result.Org, (orgData) => {
+                      const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
+                      if (index !== -1) {
+                      result[index].dataValues.orgData = orgData;
+                      }
+                    })
+                  }
+                });
+                const dataValues = _.map(result, 'dataValues')
+                const nominationsWithSamples = programServiceHelper.assignSampleCounts(dataValues, nominationSampleCounts, findQuery.program_name);
+                const tableData = programServiceHelper.downloadNominationList(nominationsWithSamples)
+                cacheManager.set({ key: findQuery.program_id, value: tableData },
+                  function (err, cacheCSVData) {
+                    if (err) {
+                      logger.error({msg: 'Error - caching', err, additionalInfo: {nominationData: req.data}}, req)
+                    } else {
+                      logger.debug({msg: 'Caching nomination list - done', additionalInfo: {nominationData: req.data}}, req)
+                    }
+                })
+                rspObj.result = {
+                  tableData
+                }
+                rspObj.responseCode = 'OK'
+                return response.status(200).send(successResponse(rspObj))
+              },
+              (error) => {
+                loggerError('Error fetching user or org details while downloading nomination list',
+                rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, null)
+                return response.status(400).send(errorResponse(rspObj))
+              }
+            )
+        } catch(error) {
+          loggerError('Error fetching nomination list',
+            rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
+          return response.status(400).send(errorResponse(rspObj))
+        }
+      }).catch(error => {
+        loggerError('Error fetching nomination list',
+          rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
+        return response.status(400).send(errorResponse(rspObj))
+      })
+    }
+    else {
+      rspObj.result = {
+        tableData: cacheData
+      }
+      rspObj.responseCode = 'OK'
+      return response.status(200).send(successResponse(rspObj))
+    }
+  })
+}
+
+function getUsersDetails(req, userList) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
@@ -680,7 +802,7 @@ function getUsersDetails(req, userId) {
       "entityType": ["User"],
       "filters": {
         "userId": {
-          "eq": userId
+          "or": userList
         }
       }
     }
@@ -693,7 +815,8 @@ function getUsersDetails(req, userId) {
   });
 }
 
-function getOrgDetails(req, orgId) {
+
+function getOrgDetails(req, orgList) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
@@ -708,7 +831,7 @@ function getOrgDetails(req, orgId) {
       "entityType": ["Org"],
       "filters": {
         "osid": {
-          "eq": orgId
+          "or": orgList
         }
       }
     }
@@ -1308,6 +1431,7 @@ module.exports.updateNominationAPI = updateNomination
 module.exports.removeNominationAPI = removeNomination
 module.exports.programUpdateCollectionAPI = programUpdateCollection
 module.exports.nominationsListAPI = getNominationsList
+module.exports.downloadNominationListAPI = downloadNominationList
 module.exports.programGetContentTypesAPI = getProgramContentTypes
 module.exports.getUserDetailsAPI = getUsersDetailsById
 module.exports.healthAPI = health
