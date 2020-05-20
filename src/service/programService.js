@@ -557,7 +557,7 @@ function getNominationsList(req, response) {
           userList.push(data.user_id);
 
           if (data.organisation_id) {
-            orgList.push(data.organisation_id.slice(2));
+            orgList.push(data.organisation_id);
           }
         })
         if (_.isEmpty(userList)) {
