@@ -672,6 +672,12 @@ exports.PROGRAM = {
     FAILED_CODE: 'ERR_LINKING_TEXBOOK_FAILED',
     FAILED_MESSAGE: 'Unable to link textbook to program'
   },
+  GENERATE_DETAILS: {
+    MISSING_CODE: 'ERR_GENERATING_PROGRAM_DATA',
+    MISSING_MESSAGE: 'Required fields like program_id<Array>, is missing',
+    FAILED_CODE: 'ERR_GENERATING_PROGRAM_DATA_FAILED',
+    FAILED_MESSAGE: 'Unable to generate the program data'
+  },
   NOMINATION: {
     READ: {
       MISSING_CODE: 'ERR_GET_NOMINATION_DATA',
@@ -690,6 +696,12 @@ exports.PROGRAM = {
       MISSING_MESSAGE: 'Required fields like program_id, user_id while updating nomination data are missing',
       FAILED_CODE: 'ERR_UPDATE_NOMINATION_DATA_FAILED',
       FAILED_MESSAGE: 'Unable to update the nomination data'
+    },
+    LIST: {
+      MISSING_CODE: 'ERR_GET_NOMINATION_LIST',
+      MISSING_MESSAGE: 'Required fields like program_id/user_id to get nomination are missing',
+      FAILED_CODE: 'ERR_GET_NOMINATION_LIST_FAILED',
+      FAILED_MESSAGE: 'Unable to get the nomination list'
     },
     DOWNLOAD_LIST: {
       MISSING_CODE: 'ERR_DOWNLOADING_NOMINATION_DATA',
