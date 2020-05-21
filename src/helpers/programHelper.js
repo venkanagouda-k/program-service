@@ -26,7 +26,7 @@ class ProgramServiceHelper {
        filters: {
          programId: program_id,
          objectType: 'content',
-         status: ['Review', 'Draft'],
+         status: ['Draft'],
          contentType: 'Textbook'
        },
        fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents'],
