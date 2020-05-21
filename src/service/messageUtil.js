@@ -702,6 +702,14 @@ exports.PROGRAM = {
       MISSING_MESSAGE: 'Required fields like program_id/user_id to get nomination are missing',
       FAILED_CODE: 'ERR_GET_NOMINATION_LIST_FAILED',
       FAILED_MESSAGE: 'Unable to get the nomination list'
+    },
+    DOWNLOAD_LIST: {
+      MISSING_CODE: 'ERR_DOWNLOADING_NOMINATION_DATA',
+      MISSING_MESSAGE: 'Required fields like program_id, program_name, status while getting nomination data are missing',
+      FAILED_CODE: 'ERR_DOWNLOADING_NOMINATION_DATA_FAILED',
+      FAILED_MESSAGE: 'Unable to download the nomination data',
+      QUERY_FAILED_MESSAGE: 'Unable to fetch query from DB',
+      QUERY_FAILED_CODE: 'ERR_FETCHING_DATA_FROM_DB'
     }
   },
   COPY_COLLECTION: {
