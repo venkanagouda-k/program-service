@@ -518,7 +518,7 @@ function getNominationsList(req, response) {
         result: err
       }));
     })
-  }else if (data.request.limit === 0) {  
+  }else if (data.request.limit === 0) {
     model.nomination.findAll({
       where: {
         ...findQuery
@@ -526,7 +526,7 @@ function getNominationsList(req, response) {
       attributes: [...data.request.fields || []]
     }).then(async (result) => {
       let aggregatedRes = await aggregatedNominationCount(data, result);
-      
+
       return response.status(200).send(successResponse({
         apiId: 'api.nomination.list',
         ver: '1.0',
@@ -578,7 +578,6 @@ function getNominationsList(req, response) {
         })
 
         forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList)).subscribe((resData) => {
-
           _.forEach(resData, function (data) {
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
               _.forEach(data.data.result.User, (userData) => {
