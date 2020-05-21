@@ -88,7 +88,7 @@ class ProgramServiceHelper {
       }
       nomination.createdon = dateFormat(nomination.createdon, 'mmmm d, yyyy');
       nomination.name = name;
-      nomination.textbooks = nomination.collection_ids.length;
+      nomination.textbooks = nomination.collection_ids && nomination.collection_ids.length;
       nomination.type = isOrg ? 'Organisation' : 'Individual';
       return {
         programName: nomination.programName,

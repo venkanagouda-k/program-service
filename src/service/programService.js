@@ -674,15 +674,14 @@ function aggregatedNominationCount(data, result) {
   rspObj.errCode = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_CODE;
   rspObj.errMsg = programMessages.NOMINATION.DOWNLOAD_LIST.MISSING_MESSAGE;
   rspObj.responseCode = responseCode.CLIENT_ERROR;
-  if(!data || !data.request || !data.request.filters ||
-    !data.request.filters.program_id || !data.request.filters.program_name || !data.request.filters.status) {
+  if(!data || !data.request || !data.request.filters || !data.request.filters.program_id || !data.request.filters.program_name || !data.request.filters.status) {
     loggerError('Error due to missing request or program_id, status or program_name',
     rspObj.errCode, rspObj.errMsg, rspObj.responseCode, null, req)
     return response.status(400).send(errorResponse(rspObj))
   }
   const reqHeaders = req.headers;
   const findQuery = data.request.filters ? data.request.filters : {};
-  cacheManager.get(findQuery.program_id, function (err, cacheData) {
+  cacheManager.get(findQuery.program_id, (err, cacheData) => {
     if(err || !cacheData) {
       model.nomination.findAll({
         where: {
@@ -693,7 +692,7 @@ function aggregatedNominationCount(data, result) {
         order: [
           ['updatedon', 'DESC']
         ]
-      }).then(async function(result) {
+      }).then((result) => {
         try {
           let userList = [];
           let orgList = [];
@@ -707,7 +706,7 @@ function aggregatedNominationCount(data, result) {
           })
           if(_.isEmpty(userList)) {
             rspObj.result = {
-              tableData: []
+              stats: []
             }
             rspObj.responseCode = 'OK'
             return response.status(200).send(successResponse(rspObj))
@@ -715,7 +714,8 @@ function aggregatedNominationCount(data, result) {
           orgList = _.map(orgList, o => {
             return o.replace(/^1-+/, '')
           })
-          forkJoin(programServiceHelper.searchContent(findQuery.program_id, true, reqHeaders), getUsersDetails(req, userList), getOrgDetails(req, orgList))
+          forkJoin(programServiceHelper.searchContent(findQuery.program_id, true, reqHeaders),
+          getUsersDetails(req, userList), getOrgDetails(req, orgList))
             .subscribe(
               (promiseData) => {
                 const contentResult = _.first(promiseData);
@@ -750,29 +750,38 @@ function aggregatedNominationCount(data, result) {
                 cacheManager.set({ key: findQuery.program_id, value: tableData },
                   function (err, cacheCSVData) {
                     if (err) {
-                      logger.error({msg: 'Error - caching', err, additionalInfo: {nominationData: req.data}}, req)
+                      logger.error({msg: 'Error - caching', err, additionalInfo: {stats: tableData}}, req)
                     } else {
-                      logger.debug({msg: 'Caching nomination list - done', additionalInfo: {nominationData: req.data}}, req)
+                      logger.debug({msg: 'Caching nomination list - done', additionalInfo: {stats: cacheCSVData}}, req)
                     }
                 })
                 rspObj.result = {
-                  tableData
+                  stats: tableData
                 }
                 rspObj.responseCode = 'OK'
                 return response.status(200).send(successResponse(rspObj))
               },
               (error) => {
+                rspObj.errCode = _.get(error, 'response.statusText');
+                rspObj.errMsg = _.get(error, 'response.data.message');
+                rspObj.responseCode = responseCode.UNAUTHORIZED_ACCESS;
                 loggerError('Error fetching user or org details while downloading nomination list',
                 rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, null)
                 return response.status(400).send(errorResponse(rspObj))
               }
             )
         } catch(error) {
+          rspObj.errCode = _.get(error, 'name');
+          rspObj.errMsg = _.get(error, 'message');
+          rspObj.responseCode = responseCode.SERVER_ERROR;
           loggerError('Error fetching nomination list',
             rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
           return response.status(400).send(errorResponse(rspObj))
         }
       }).catch(error => {
+        rspObj.errCode = programMessages.NOMINATION.DOWNLOAD_LIST.QUERY_FAILED_CODE;
+        rspObj.errMsg = programMessages.NOMINATION.DOWNLOAD_LIST.QUERY_FAILED_MESSAGE;
+        rspObj.responseCode = responseCode.SERVER_ERROR;
         loggerError('Error fetching nomination list',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
         return response.status(400).send(errorResponse(rspObj))
@@ -780,7 +789,7 @@ function aggregatedNominationCount(data, result) {
     }
     else {
       rspObj.result = {
-        tableData: cacheData
+        stats: cacheData
       }
       rspObj.responseCode = 'OK'
       return response.status(200).send(successResponse(rspObj))
