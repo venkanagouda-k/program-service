@@ -707,9 +707,6 @@ function aggregatedNominationCount(data, result) {
             rspObj.responseCode = 'OK'
             return response.status(200).send(successResponse(rspObj))
           }
-          orgList = _.map(orgList, o => {
-            return o.replace(/^1-+/, '')
-          })
           forkJoin(programServiceHelper.searchContent(findQuery.program_id, true, reqHeaders),
           getUsersDetails(req, userList), getOrgDetails(req, orgList))
             .subscribe(
