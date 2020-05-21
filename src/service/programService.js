@@ -573,9 +573,6 @@ function getNominationsList(req, response) {
             result: result
           }))
         }
-        orgList = _.map(orgList, o => {
-          return o.replace(/^1-+/, '')
-        })
 
         forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList)).subscribe((resData) => {
           _.forEach(resData, function (data) {
