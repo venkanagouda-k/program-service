@@ -5,6 +5,7 @@ const envVariables = {
     SUNBIRD_PORTAL_API_AUTH_TOKEN: process.env.sunbird_api_auth_token,
     DOCK_CHANNEL: process.env.dock_channel || 'sunbird',
     port: process.env.sunbird_program_port || 6000,
+    CACHE_TTL: process.env.dock_cache_ttl || 900,
     level: process.env.sunbird_service_log_level || 'info',
     LEARNING_SERVICE_URL: process.env.learning_service_url,
     OPENSABER_SERVICE_URL: process.env.opensaber_service_url,
@@ -15,7 +16,7 @@ const envVariables = {
         password: process.env.sunbird_program_db_password || 'password',
         port: process.env.sunbird_program_db_port || 5432,
         dialect: process.env.sunbird_program_db_dialect || "postgres",
-        pool: { 
+        pool: {
             max: process.env.sunbird_program_db_pool || 100
         }
     },
