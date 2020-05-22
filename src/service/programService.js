@@ -25,7 +25,7 @@ const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
 
 const programServiceHelper = new ProgramServiceHelper();
-const cacheManager = new SbCacheManager({});
+const cacheManager = new SbCacheManager({ttl: envVariables.CACHE_TTL});
 const registryService = new RegistryService()
 const hierarchyService = new HierarchyService()
 
