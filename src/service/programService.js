@@ -489,6 +489,9 @@ function getNominationsList(req, response) {
   var rspObj = req.rspObj;
   var res_limit = queryRes_Min;
   var res_offset = data.request.offset || 0;
+  rspObj.errCode = programMessages.NOMINATION.LIST.FAILED_CODE
+  rspObj.errMsg = programMessages.NOMINATION.LIST.FAILED_MESSAGE
+  rspObj.responseCode = responseCode.SERVER_ERROR
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
@@ -510,13 +513,9 @@ function getNominationsList(req, response) {
         result: result
       }))
     }).catch((err) => {
-      return response.status(400).send(errorResponse({
-        apiId: 'api.nomination.list',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'ERR_NOMINATION_LIST',
-        result: err
-      }));
+      loggerError('Error fetching nomination count group by facets',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
+      return response.status(400).send(errorResponse(rspObj));
     })
   }else if (data.request.limit === 0) {
     model.nomination.findAll({
@@ -535,13 +534,9 @@ function getNominationsList(req, response) {
         result: aggregatedRes
       }))
     }).catch((err) => {
-      return response.status(400).send(errorResponse({
-        apiId: 'api.nomination.list',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'ERR_NOMINATION_LIST',
-        result: err
-      }));
+      loggerError('Error fetching nomination count when limit = 0',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
+      return response.status(400).send(errorResponse(rspObj));
     })
   } else {
     model.nomination.findAll({
@@ -602,32 +597,94 @@ function getNominationsList(req, response) {
             result: result
           }))
         }, (error) => {
-          return response.status(400).send(errorResponse({
-            apiId: 'api.nomination.list',
-            ver: '1.0',
-            msgid: uuid(),
-            responseCode: 'ERR_NOMINATION_LIST',
-            result: error
-          }));
+          loggerError('Error in fetching user/org details',
+          rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req);
+          return response.status(400).send(errorResponse(rspObj));
         });
       } catch (err) {
-        return response.status(400).send(errorResponse({
-          apiId: 'api.nomination.list',
-          ver: '1.0',
-          msgid: uuid(),
-          responseCode: 'ERR_NOMINATION_LIST',
-          result: err.message || err
-        }));
+        loggerError('Error fetching nomination with limit and offset',
+          rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
+          return response.status(400).send(errorResponse(rspObj));
       }
     }).catch(function (err) {
-      return response.status(400).send(errorResponse({
-        apiId: 'api.nomination.list',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'ERR_NOMINATION_LIST',
-        result: err.message || err
-      }));
+      loggerError('Error fetching nomination with limit and offset',
+          rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
+          return response.status(400).send(errorResponse(rspObj));
     });
+  }
+}
+
+async function downloadProgramDetails(req, res) {
+  const data = req.body
+  const rspObj = req.rspObj
+  let programArr = [], promiseRequests = [], cacheData = [], filteredPrograms = [];
+  rspObj.errCode = programMessages.GENERATE_DETAILS.FAILED_CODE
+  rspObj.errMsg = programMessages.GENERATE_DETAILS.FAILED_MESSAGE
+  rspObj.responseCode = responseCode.SERVER_ERROR
+  if (!data.request || !data.request.filters || !data.request.filters.program_id) {
+    rspObj.errCode = programMessages.GENERATE_DETAILS.MISSING_CODE
+    rspObj.errMsg = programMessages.GENERATE_DETAILS.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+      loggerError('Error due to missing request or request.filters or request.filters.program_id',
+        rspObj.errCode, rspObj.errMsg, rspObj.responseCode, null, req)
+    return res.status(400).send(errorResponse(rspObj));
+  }
+  programArr = _.isArray(data.request.filters.program_id) ? data.request.filters.program_id : [];
+  await _.forEach(programArr, (program) => { 
+    cacheManager.get(`program_details_${program}`, (err, cache) => {
+      if (err || !cache) {
+        filteredPrograms.push(program);
+      } else {
+        cacheData.push(cache);
+      }
+    });
+  });
+  
+  if (filteredPrograms.length) {
+  promiseRequests =  _.map(filteredPrograms, (program) => {
+    return [programServiceHelper.getCollectionWithProgramId(program, req), programServiceHelper.getSampleContentWithProgramId(program, req),
+                programServiceHelper.getContributionWithProgramId(program, req), programServiceHelper.getNominationWithProgramId(program)];
+  });
+
+    forkJoin(..._.flatMapDeep(promiseRequests)).subscribe((responseData) => {
+    try{
+    const combainedRes = _.chunk(responseData, 4);
+    const programDetailsArray = programServiceHelper.handleMultiProgramDetails(combainedRes);
+    const tableData  = _.reduce(programDetailsArray, (final, data, index) => {
+    final.push({program_id: filteredPrograms[index], values: data});
+    return final;
+    }, []);
+    _.forEach(tableData, (obj) => {
+      cacheManager.set({ key: `program_details_${obj.program_id}`, value: obj },
+      function (err, cacheCSVData) {
+        if (err) {
+          logger.error({msg: 'Error - caching', err, additionalInfo: {programDetails: obj}}, req)
+        } else {
+          logger.debug({msg: 'Caching nomination list - done', additionalInfo: {nominationData: obj}}, req)
+        }
+    });
+    });
+    rspObj.result = {
+      tableData: [...tableData, ...cacheData]
+    }
+    rspObj.responseCode = 'OK'
+    return res.status(200).send(successResponse(rspObj));
+  } catch (err) {
+    loggerError('Error due to unhandled exception',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req)
+    return res.status(400).send(errorResponse(rspObj));
+  }
+    }, (err) => {
+      loggerError('Error http requests or nomination table query promise failure',
+        rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req)
+      return res.status(400).send(errorResponse(rspObj));
+    });
+  }else {
+    rspObj.result = {
+      tableData: [...cacheData]
+    }
+    rspObj.responseCode = 'OK'
+    return res.status(200).send(successResponse(rspObj));
   }
 }
 
@@ -1441,3 +1498,4 @@ module.exports.healthAPI = health
 module.exports.programCopyCollectionAPI = programCopyCollections;
 module.exports.getAllConfigurationsAPI = getAllConfigurations;
 module.exports.getConfigurationByKeyAPI = getConfigurationByKey;
+module.exports.downloadProgramDetailsAPI = downloadProgramDetails
