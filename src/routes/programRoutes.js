@@ -27,6 +27,10 @@ module.exports = function (app) {
   app.route(BASE_URL + '/list/download')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.downloadProgramDetailsAPI)
+  
+  app.route(BASE_URL + '/contentReport')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.generateApprovedContentReportAPI)
 
   app.route(BASE_URL + '/search')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,

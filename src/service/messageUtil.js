@@ -678,6 +678,12 @@ exports.PROGRAM = {
     FAILED_CODE: 'ERR_GENERATING_PROGRAM_DATA_FAILED',
     FAILED_MESSAGE: 'Unable to generate the program data'
   },
+  CONTENT_REPORT: {
+    MISSING_CODE: 'ERR_GENERATING_CONTENT_REPORT',
+    MISSING_MESSAGE: 'Required fields like program_id<Array>,report is missing',
+    FAILED_CODE: 'ERR_GENERATING_CONTENT_REPORT_FAILED',
+    FAILED_MESSAGE: 'Unable to generate the content report'
+  },
   NOMINATION: {
     READ: {
       MISSING_CODE: 'ERR_GET_NOMINATION_DATA',

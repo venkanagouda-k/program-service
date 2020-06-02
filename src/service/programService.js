@@ -1428,6 +1428,92 @@ async function programCopyCollections(req, response) {
     )
 }
 
+async function generateApprovedContentReport(req, res) {
+  const data = req.body
+  const rspObj = req.rspObj
+  let programArr = [], cacheData = [], filteredPrograms = [];
+  rspObj.errCode = programMessages.CONTENT_REPORT.FAILED_CODE
+  rspObj.errMsg = programMessages.CONTENT_REPORT.FAILED_MESSAGE
+  rspObj.responseCode = responseCode.SERVER_ERROR
+  if (!data.request || !data.request.filters || !data.request.filters.program_id || !data.request.filters.report) {
+    rspObj.errCode = programMessages.CONTENT_REPORT.MISSING_CODE
+    rspObj.errMsg = programMessages.CONTENT_REPORT.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+      loggerError('Error due to missing request or request.filters or request.filters.program_id or data.request.filters.report',
+        rspObj.errCode, rspObj.errMsg, rspObj.responseCode, null, req)
+    return res.status(400).send(errorResponse(rspObj));
+  }
+  programArr = _.isArray(data.request.filters.program_id) ? data.request.filters.program_id : [];
+  await _.forEach(programArr, (program) => { 
+    cacheManager.get(`approvedContentCount_${program}`, (err, cache) => {
+      if (err || !cache) {
+        filteredPrograms.push(program);
+      } else {
+        cacheData.push(cache);
+      }
+    });
+  });
+  
+  if (filteredPrograms.length) {
+    try {
+    const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
+    const aggregatedResult = await Promise.all(requests);
+      _.forEach(aggregatedResult, result => {
+        cacheManager.set({ key: `approvedContentCount_${result.program_id}`, value: result },
+        function (err, cacheCSVData) {
+          if (err) {
+            logger.error({msg: 'Error - caching', err, additionalInfo: {approvedContentCount: result}}, req)
+          } else {
+            logger.debug({msg: 'Caching  approvedContentCount - done', additionalInfo: {approvedContentCount: result}}, req)
+          }
+        });
+      });
+
+    if (data.request.filters.report === 'Textbook Level Content Report') {
+      const textbookLevelReport = await programServiceHelper.textbookLevelContentMetrics([...aggregatedResult, ...cacheData]);
+      rspObj.result = {
+        tableData: textbookLevelReport
+      }
+      rspObj.responseCode = 'OK'
+      return res.status(200).send(successResponse(rspObj));
+    } else if (data.request.filters.report === 'Chapter Level Content Report') {
+      const chapterLevelReport = await programServiceHelper.chapterLevelContentMetrics([...aggregatedResult, ...cacheData]);
+      rspObj.result = {
+        tableData: chapterLevelReport
+      }
+      rspObj.responseCode = 'OK'
+      return res.status(200).send(successResponse(rspObj));
+    }
+  } catch(err) {
+      loggerError('Error in preparing content metrics',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req)
+      return res.status(400).send(errorResponse(rspObj));
+    }
+  } else {
+    try {
+      if (data.request.filters.report === 'Textbook Level Content Report') {
+        const textbookLevelReport = await programServiceHelper.textbookLevelContentMetrics([...cacheData]);
+        rspObj.result = {
+          tableData: textbookLevelReport
+        }
+        rspObj.responseCode = 'OK'
+        return res.status(200).send(successResponse(rspObj));
+      } else if (data.request.filters.report === 'Chapter Level Content Report') {
+        const chapterLevelReport = await programServiceHelper.chapterLevelContentMetrics([...cacheData]);
+        rspObj.result = {
+          tableData: chapterLevelReport
+        }
+        rspObj.responseCode = 'OK'
+        return res.status(200).send(successResponse(rspObj));
+      }
+    }catch(err) {
+      loggerError('Error in preparing content metrics',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req)
+      return res.status(400).send(errorResponse(rspObj));
+    }
+  }
+}
+
 function loggerError(msg, errCode, errMsg, responseCode, error, req) {
   logger.error({ msg: msg, err: { errCode, errMsg, responseCode }, additionalInfo: { error } }, req)
 }
@@ -1499,3 +1585,4 @@ module.exports.programCopyCollectionAPI = programCopyCollections;
 module.exports.getAllConfigurationsAPI = getAllConfigurations;
 module.exports.getConfigurationByKeyAPI = getConfigurationByKey;
 module.exports.downloadProgramDetailsAPI = downloadProgramDetails
+module.exports.generateApprovedContentReportAPI = generateApprovedContentReport
