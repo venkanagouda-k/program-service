@@ -28,7 +28,7 @@ module.exports = function (app) {
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.downloadProgramDetailsAPI)
   
-  app.route(BASE_URL + '/contentReport')
+  app.route(BASE_URL + '/report')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.generateApprovedContentReportAPI)
 
