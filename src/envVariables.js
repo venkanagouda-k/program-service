@@ -12,7 +12,7 @@ const envVariables = {
     SUNBIRD_KAFKA_HOST: process.env.sunbird_kafka_host,
     DOCK_REDIS_HOST: process.env.dock_redis_host,
     DOCK_REDIS_PORT: process.env.dock_redis_port,
-    PUBLISH_ENV: process.env.PUBLISH_ENV,
+    PUBLISH_ENV: process.env.publish_content_env,
     config: {
         user: process.env.sunbird_program_db_user || "postgres",
         host: process.env.sunbird_program_db_host || "localhost",
