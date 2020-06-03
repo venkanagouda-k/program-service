@@ -83,4 +83,8 @@ module.exports = function (app) {
   app.route(BASE_URL + '/configuration/search')
   .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
     programService.getConfigurationByKeyAPI)
+
+    app.route(BASE_URL + '/content/publish')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.publishContentAPI)
 }

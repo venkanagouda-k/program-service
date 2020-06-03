@@ -17,6 +17,9 @@ const axios = require('axios');
 const envVariables = require('../envVariables');
 const RegistryService = require('./registryService')
 const ProgramServiceHelper = require('../helpers/programHelper');
+const RedisManager = require('../helpers/redisUtil')
+const KafkaService = require('../helpers/kafkaUtil')
+const publishHelper = require('../helpers/publishHelper')
 var async = require('async')
 
 
@@ -1524,6 +1527,49 @@ async function generateApprovedContentReport(req, res) {
   }
 }
 
+function publishContent(req, response){
+  var rspObj = req.rspObj;
+  const reqHeaders = req.headers;
+  var data = req.body;
+  if (!data.request || !data.request.content_id) {
+    rspObj.errCode = programMessages.CONTENT_PUBLISH.MISSING_CODE
+    rspObj.errMsg = programMessages.CONTENT_PUBLISH.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request content_id',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: {
+        data
+      }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+
+  publishHelper.getContentMetaData(data.request.content_id, reqHeaders).then( conteRe =>{
+    return conteRe;
+  }).then(conteRe => {
+    const eventData = publishHelper.getPublishContentEvent(conteRe.data.result.content);
+    KafkaService.sendRecord(eventData, function(){
+      rspObj.responseCode = 'OK'
+      rspObj.result = {
+        'publishStatus': `Publish Operation for Content Id ${data.request.content_id} Started Successfully!`
+      }
+      return response.status(200).send(successResponse(rspObj));
+    })
+  }).catch(error => {
+    rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
+    rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
+    rspObj.responseCode = res.SERVER_ERROR
+    loggerError('Unable to publish contnet',
+    rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error);
+    return response.status(400).send(errorResponse(rspObj));
+  });
+}
+
 function loggerError(msg, errCode, errMsg, responseCode, error, req) {
   logger.error({ msg: msg, err: { errCode, errMsg, responseCode }, additionalInfo: { error } }, req)
 }
@@ -1596,3 +1642,4 @@ module.exports.getAllConfigurationsAPI = getAllConfigurations;
 module.exports.getConfigurationByKeyAPI = getConfigurationByKey;
 module.exports.downloadProgramDetailsAPI = downloadProgramDetails
 module.exports.generateApprovedContentReportAPI = generateApprovedContentReport
+module.exports.publishContentAPI = publishContent
