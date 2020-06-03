@@ -1469,44 +1469,54 @@ async function generateApprovedContentReport(req, res) {
         });
       });
 
-    if (data.request.filters.report === 'Textbook Level Content Report') {
+    if (data.request.filters.report === 'textbookLevelReport') {
       const textbookLevelReport = await programServiceHelper.textbookLevelContentMetrics([...aggregatedResult, ...cacheData]);
       rspObj.result = {
         tableData: textbookLevelReport
       }
       rspObj.responseCode = 'OK'
       return res.status(200).send(successResponse(rspObj));
-    } else if (data.request.filters.report === 'Chapter Level Content Report') {
+    } else if (data.request.filters.report === 'chapterLevelReport') {
       const chapterLevelReport = await programServiceHelper.chapterLevelContentMetrics([...aggregatedResult, ...cacheData]);
       rspObj.result = {
         tableData: chapterLevelReport
       }
       rspObj.responseCode = 'OK'
       return res.status(200).send(successResponse(rspObj));
+    } else {
+      throw 'programServiceException: Invalid report name'
     }
   } catch(err) {
+    if (_.includes(err, 'programServiceException')) {
+      rspObj.errMsg = err;
+    }
       loggerError('Error in preparing content metrics',
       rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req)
       return res.status(400).send(errorResponse(rspObj));
     }
   } else {
     try {
-      if (data.request.filters.report === 'Textbook Level Content Report') {
+      if (data.request.filters.report === 'textbookLevelReport') {
         const textbookLevelReport = await programServiceHelper.textbookLevelContentMetrics([...cacheData]);
         rspObj.result = {
           tableData: textbookLevelReport
         }
         rspObj.responseCode = 'OK'
         return res.status(200).send(successResponse(rspObj));
-      } else if (data.request.filters.report === 'Chapter Level Content Report') {
+      } else if (data.request.filters.report === 'chapterLevelReport') {
         const chapterLevelReport = await programServiceHelper.chapterLevelContentMetrics([...cacheData]);
         rspObj.result = {
           tableData: chapterLevelReport
         }
         rspObj.responseCode = 'OK'
         return res.status(200).send(successResponse(rspObj));
+      } else {
+        throw 'programServiceException: Invalid report name'
       }
     }catch(err) {
+      if (_.includes(err, 'programServiceException')) {
+        rspObj.errMsg = err;
+      }
       loggerError('Error in preparing content metrics',
       rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req)
       return res.status(400).send(errorResponse(rspObj));

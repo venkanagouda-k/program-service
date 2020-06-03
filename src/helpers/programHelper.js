@@ -291,13 +291,13 @@ getContributionWithProgramId(program_id, req) {
           const contentCount = this.approvedContentCount(hierarchyArr, program_id);
           resolve(contentCount);
         } catch (err) {
-          reject('error in counting the approved contents');
+          reject('programServiceException: error in counting the approved contents');
         }
         }, err => {
-          reject('error in fetching collections-hierarchy');
+          reject('programServiceException: error in fetching collections-hierarchy');
         });
       }).catch(err => {
-        reject('error in fetching collections against programID');
+        reject('programServiceException: error in fetching collections against programID');
       });
     });
   }
@@ -385,10 +385,10 @@ getContributionWithProgramId(program_id, req) {
         });
         return resolve(overalData);
       }catch (err) {
-        reject('error in preparing textbookLevelContentMetrics');
+        reject('programServiceException: error in preparing textbookLevelContentMetrics');
       }
       }, err => {
-        reject('error in fetching contentTypes');
+        reject('programServiceException: error in fetching contentTypes');
       });
     });
   }
@@ -422,10 +422,10 @@ getContributionWithProgramId(program_id, req) {
           });
           resolve(overalData);
         }catch (err) {
-         reject('error in preparing chapterLevelContentMetrics');
+         reject('programServiceException: error in preparing chapterLevelContentMetrics');
         }
         }, err => {
-          reject('error in fetching contentTypes');
+          reject('programServiceException: error in fetching contentTypes');
         });
       });
   }
