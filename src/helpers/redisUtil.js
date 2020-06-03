@@ -6,8 +6,8 @@ var redisClient;
 class RedisManager {
     constructor() {
         this.redisClient = redis.createClient({
-            host: '127.0.0.1' || envVariables.DOCK_REDIS_HOST,
-            port: '6379' || envVariables.DOCK_REDIS_PORT,
+            host: envVariables.DOCK_REDIS_HOST,
+            port: envVariables.DOCK_REDIS_PORT,
             retry_strategy: (options) => {
                 return 5000; //in ms
             }
