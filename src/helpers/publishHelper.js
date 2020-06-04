@@ -32,14 +32,14 @@ function getPublishContentEvent(metadata) {
         'env': envVariables.PUBLISH_ENV
       },
       'object': {
-        'ver': metadata.pkgVersion,
+        'ver': "1.0",
         'id': metadata.identifier
       },
       'edata': {
         'action': 'auto-create',
         'iteration': 1,
         'objectType': 'Content',
-        'repository': '',
+        'repository': `${envVariables.baseURL}/api/content/v1/read/${metadata.identifier}`,
         'metadata': metadata
       }
     }
