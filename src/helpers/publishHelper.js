@@ -13,8 +13,14 @@ function getContentMetaData(contentId, reqHeaders){
   return axios(option);
 }
 
-function getPublishContentEvent(metadata) {
+function getPublishContentEvent(metadata, textbookId, units) {
     metadata.pkgVersion = `${metadata.pkgVersion}.0`
+    metadata = _.omit(metadata, [
+      "downloadUrl",
+      "variants",
+      "previewUrl",
+      "streamingUrl"
+    ]);
     var ets = Date.now();
     var dataObj = {
       'eid': 'BE_JOB_REQUEST',
@@ -41,7 +47,11 @@ function getPublishContentEvent(metadata) {
         'iteration': 1,
         'objectType': 'Content',
         'repository': `${envVariables.baseURL}/api/content/v1/read/${metadata.identifier}`,
-        'metadata': metadata
+        'metadata': metadata,
+        'textbookInfo': {
+          'identifier': textbookId,
+          'units': units
+        }
       }
     }
 

@@ -686,7 +686,7 @@ exports.PROGRAM = {
   },
   CONTENT_PUBLISH: {
     MISSING_CODE: 'ERR_CONTENT_PUBLISH',
-    MISSING_MESSAGE: 'Required fields like content_id missing',
+    MISSING_MESSAGE: 'Required fields like content_id or textbook_id or units missing',
     FAILED_CODE: 'ERR_CONTENT_PUBLISH_FAILED',
     FAILED_MESSAGE: 'Unable to publish contnet'
   },
@@ -705,7 +705,7 @@ exports.PROGRAM = {
     },
     UPDATE: {
       MISSING_CODE: 'ERR_UPDATE_NOMINATION_DATA',
-      MISSING_MESSAGE: 'Required fields like program_id, user_id while updating nomination data are missing',
+      MISSING_MESSAGE: 'Required fields like program_id, user_id or organisation_id while updating nomination data are missing',
       FAILED_CODE: 'ERR_UPDATE_NOMINATION_DATA_FAILED',
       FAILED_MESSAGE: 'Unable to update the nomination data'
     },
