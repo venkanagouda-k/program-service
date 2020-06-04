@@ -1563,7 +1563,7 @@ function publishContent(req, response){
   }).catch(error => {
     rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
     rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
-    rspObj.responseCode = res.SERVER_ERROR
+    rspObj.responseCode = responseCode.SERVER_ERROR
     loggerError('Unable to publish contnet',
     rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error);
     return response.status(400).send(errorResponse(rspObj));
