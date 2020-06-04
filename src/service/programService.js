@@ -26,6 +26,7 @@ const HierarchyService = require('../helpers/updateHierarchy.helper');
 
 const programServiceHelper = new ProgramServiceHelper();
 const cacheManager = new SbCacheManager({ttl: envVariables.CACHE_TTL});
+const cacheManager_programReport = new SbCacheManager({ttl: envVariables.CACHE_TTL_programReport});
 const registryService = new RegistryService()
 const hierarchyService = new HierarchyService()
 
@@ -1445,7 +1446,7 @@ async function generateApprovedContentReport(req, res) {
   }
   programArr = _.isArray(data.request.filters.program_id) ? data.request.filters.program_id : [];
   await _.forEach(programArr, (program) => { 
-    cacheManager.get(`approvedContentCount_${program}`, (err, cache) => {
+    cacheManager_programReport.get(`approvedContentCount_${program}`, (err, cache) => {
       if (err || !cache) {
         filteredPrograms.push(program);
       } else {
@@ -1459,7 +1460,7 @@ async function generateApprovedContentReport(req, res) {
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
     const aggregatedResult = await Promise.all(requests);
       _.forEach(aggregatedResult, result => {
-        cacheManager.set({ key: `approvedContentCount_${result.program_id}`, value: result },
+        cacheManager_programReport.set({ key: `approvedContentCount_${result.program_id}`, value: result },
         function (err, cacheCSVData) {
           if (err) {
             logger.error({msg: 'Error - caching', err, additionalInfo: {approvedContentCount: result}}, req)

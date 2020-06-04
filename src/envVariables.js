@@ -6,6 +6,7 @@ const envVariables = {
     DOCK_CHANNEL: process.env.dock_channel || 'sunbird',
     port: process.env.sunbird_program_port || 6000,
     CACHE_TTL: process.env.dock_cache_ttl || 900,
+    CACHE_TTL_programReport: process.env.dock_cache_ttl_program_report || 86400,
     level: process.env.sunbird_service_log_level || 'info',
     LEARNING_SERVICE_URL: process.env.learning_service_url,
     OPENSABER_SERVICE_URL: process.env.opensaber_service_url,
