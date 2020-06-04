@@ -30,7 +30,7 @@ const KafkaService = {
     // Create a new payload
     const record = [
       {
-        topic: envVariables.sunbird_auto_creation_topic,
+        topic: envVariables.SUNBIRD_AUTO_CREATION_TOPIC,
         messages: JSON.stringify(data)
       }
     ]

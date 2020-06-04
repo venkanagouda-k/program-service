@@ -14,6 +14,7 @@ function getContentMetaData(contentId, reqHeaders){
 }
 
 function getPublishContentEvent(metadata) {
+    metadata.pkgVersion = `${metadata.pkgVersion}.0`
     var ets = Date.now();
     var dataObj = {
       'eid': 'BE_JOB_REQUEST',
@@ -32,7 +33,7 @@ function getPublishContentEvent(metadata) {
         'env': envVariables.PUBLISH_ENV
       },
       'object': {
-        'ver': "1.0",
+        'ver': '1.0',
         'id': metadata.identifier
       },
       'edata': {
