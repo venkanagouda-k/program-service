@@ -456,7 +456,7 @@ function updateNomination(req, response) {
   if(data.request.id){
     updateQuery.where.id =  data.request.id
   }
-  const updateValue = req.body.request;
+  var updateValue = req.body.request;
   updateValue = _.omit(updateValue, [
     "id",
     "program_id",
