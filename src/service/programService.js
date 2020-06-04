@@ -1565,7 +1565,7 @@ function publishContent(req, response){
       additionalInfo: {
         data
       }
-    }, req)
+    })
     return response.status(400).send(errorResponse(rspObj))
   }
 
@@ -1573,6 +1573,21 @@ function publishContent(req, response){
     return conteRe;
   }).then(conteRe => {
     const eventData = publishHelper.getPublishContentEvent(conteRe.data.result.content);
+    KafkaService.sendRecord(eventData, function (err, res) {
+      if (err) {
+        logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
+        rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
+        rspObj.errMsg = 'Error while sending event to kafka'
+        rspObj.responseCode = responseCode.SERVER_ERROR
+        return response.status(400).send(errorResponse(rspObj));
+      } else {
+        rspObj.responseCode = 'OK'
+        rspObj.result = {
+          'publishStatus': `Publish Operation for Content Id ${data.request.content_id} Started Successfully!`
+        }
+        return response.status(200).send(successResponse(rspObj));
+      }
+    });
     KafkaService.sendRecord(eventData, function(){
       rspObj.responseCode = 'OK'
       rspObj.result = {

@@ -24,7 +24,7 @@ const KafkaService = {
   sendRecord: (data, callback = () => { }) => { 
     if (_.isEmpty(data)) {
       logger.error({msg: 'Data must be provided to send Record', additionalInfo: {data}})
-      return callback(new Error('Data must be provided.'))
+      return callback(new Error('Event Data must be provided.'))
     }
 
     // Create a new payload
