@@ -4,7 +4,7 @@ var logger = require('sb_logger_util_v2')
 const envVariables = require("../envVariables");
 
 const client = new kafka.KafkaClient({
-  kafkaHost: envVariables.sunbird_kafka_host,
+  kafkaHost: envVariables.SUNBIRD_KAFKA_HOST,
   maxAsyncRequests: 100
 })
 
