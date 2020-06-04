@@ -26,7 +26,7 @@ const HierarchyService = require('../helpers/updateHierarchy.helper');
 
 const programServiceHelper = new ProgramServiceHelper();
 const cacheManager = new SbCacheManager({ttl: envVariables.CACHE_TTL});
-const cacheManager_programReport = new SbCacheManager({ttl: envVariables.CACHE_TTL_programReport});
+const cacheManager_programReport = new SbCacheManager({ttl: 86400});
 const registryService = new RegistryService()
 const hierarchyService = new HierarchyService()
 
