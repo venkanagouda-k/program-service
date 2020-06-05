@@ -19,7 +19,8 @@ function getPublishContentEvent(metadata, textbookId, units) {
       "downloadUrl",
       "variants",
       "previewUrl",
-      "streamingUrl"
+      "streamingUrl",
+      "unitIdentifiers"
     ]);
     var ets = Date.now();
     var dataObj = {
@@ -50,7 +51,7 @@ function getPublishContentEvent(metadata, textbookId, units) {
         'metadata': metadata,
         'textbookInfo': {
           'identifier': textbookId,
-          'units': units
+          'unitIdentifiers': units
         }
       }
     }
