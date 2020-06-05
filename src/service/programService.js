@@ -1588,13 +1588,6 @@ function publishContent(req, response){
         return response.status(200).send(successResponse(rspObj));
       }
     });
-    KafkaService.sendRecord(eventData, function(){
-      rspObj.responseCode = 'OK'
-      rspObj.result = {
-        'publishStatus': `Publish Operation for Content Id ${data.request.content_id} Started Successfully!`
-      }
-      return response.status(200).send(successResponse(rspObj));
-    })
   }).catch(error => {
     rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
     rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
