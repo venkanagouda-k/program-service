@@ -423,7 +423,7 @@ function addNomination(req, response) {
 function updateNomination(req, response) {
   var data = req.body
   var rspObj = req.rspObj
-  if (!data.request && !data.request.program_id && (!data.request.user_id || !data.request.organisation_id) ) {
+  if (!data.request || !data.request.program_id || !(data.request.user_id || data.request.organisation_id)) {
     rspObj.errCode = programMessages.NOMINATION.UPDATE.MISSING_CODE
     rspObj.errMsg = programMessages.NOMINATION.UPDATE.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
@@ -1551,7 +1551,7 @@ function publishContent(req, response){
   var rspObj = req.rspObj;
   const reqHeaders = req.headers;
   var data = req.body;
-  if (!data.request && !data.request.content_id && data.request.textbook_id && data.request.units) {
+  if (!data.request || !data.request.content_id || !data.request.textbook_id || !data.request.units) {
     rspObj.errCode = programMessages.CONTENT_PUBLISH.MISSING_CODE
     rspObj.errMsg = programMessages.CONTENT_PUBLISH.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
@@ -1572,7 +1572,8 @@ function publishContent(req, response){
   publishHelper.getContentMetaData(data.request.content_id, reqHeaders).then( conteRe =>{
     return conteRe;
   }).then(conteRe => {
-    const eventData = publishHelper.getPublishContentEvent(conteRe.data.result.content);
+    var units = _.isArray(data.request.units) ? data.request.units : [data.request.units];
+    const eventData = publishHelper.getPublishContentEvent(conteRe.data.result.content, data.request.textbook_id, units);
     KafkaService.sendRecord(eventData, function (err, res) {
       if (err) {
         logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
