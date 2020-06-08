@@ -14,7 +14,13 @@ function getContentMetaData(contentId, reqHeaders){
 }
 
 function getPublishContentEvent(metadata, textbookId, units) {
-    metadata.pkgVersion = `${metadata.pkgVersion}.0`
+    metadata.pkgVersion = `${metadata.pkgVersion}.0`;
+    if(metadata.subject){
+      metadata.subject = _.isArray(metadata.subject) ? metadata.subject : [metadata.subject];
+    }
+    if(metadata.medium){
+      metadata.medium = _.isArray(metadata.medium) ? metadata.medium : [metadata.medium];
+    }
     metadata = _.omit(metadata, [
       "downloadUrl",
       "variants",
