@@ -1569,11 +1569,15 @@ function publishContent(req, response){
     return response.status(400).send(errorResponse(rspObj))
   }
 
-  publishHelper.getContentMetaData(data.request.content_id, reqHeaders).then( conteRe =>{
-    return conteRe;
-  }).then(conteRe => {
+  publishHelper.getContentMetaData(data.request.content_id, reqHeaders).then( contentMetaData =>{
+    if(contentMetaData.data && contentMetaData.data.result){
+      return contentMetaData;
+    } else {
+      throw new Error("Error while content read ", data.request.content_id);
+    }
+  }).then(contentMetaData => {
     var units = _.isArray(data.request.units) ? data.request.units : [data.request.units];
-    const eventData = publishHelper.getPublishContentEvent(conteRe.data.result.content, data.request.textbook_id, units);
+    const eventData = publishHelper.getPublishContentEvent(contentMetaData.data.result.content, data.request.textbook_id, units);
     KafkaService.sendRecord(eventData, function (err, res) {
       if (err) {
         logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
