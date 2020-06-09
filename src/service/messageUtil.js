@@ -724,6 +724,26 @@ exports.PROGRAM = {
       QUERY_FAILED_CODE: 'ERR_FETCHING_DATA_FROM_DB'
     }
   },
+  PREFERENCES: {
+    CREATE: {
+      MISSING_CODE: 'ERR_CREATE_USER_PREFERENCE',
+      MISSING_MESSAGE: 'Required fields like user_id, program_id for adding user preferences are missing',
+      FAILED_CODE: 'ERR_CREATE_USER_PREFERENCE_FAILED',
+      FAILED_MESSAGE: 'Unable to add user preferences'
+    },
+    READ: {
+      MISSING_CODE: 'ERR_GET_USER_PREFERENCE',
+      MISSING_MESSAGE: 'Required fields like user_id to get preference are missing',
+      FAILED_CODE: 'ERR_GET_USER_PREFERENCE_FAILED',
+      FAILED_MESSAGE: 'Unable to get the user preferences'
+    },
+    UPDATE: {
+      MISSING_CODE: 'ERR_GET_USER_PREFERENCE',
+      MISSING_MESSAGE: 'Required fields like user_id to get preference are missing',
+      FAILED_CODE: 'ERR_UPDATE_USER_PREFERENCE_FAILED',
+      FAILED_MESSAGE: 'Unable to update the user preferences'
+    }
+  },
   COPY_COLLECTION: {
     COPY: {
       MISSING_CODE: 'ERR_COPYING_COLLECTIONS',
