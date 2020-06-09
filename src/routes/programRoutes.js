@@ -1,4 +1,5 @@
 const programService = require('../service/programService');
+const userProgramPreference = require('../service/userProgramPreference');
 const requestMiddleware = require('../middlewares/request.middleware')
 
 const BASE_URL = '/program/v1'
@@ -23,11 +24,11 @@ module.exports = function (app) {
   app.route(BASE_URL + '/list')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programListAPI)
-  
+
   app.route(BASE_URL + '/list/download')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.downloadProgramDetailsAPI)
-  
+
   app.route(BASE_URL + '/report')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.generateApprovedContentReportAPI)
@@ -53,38 +54,50 @@ module.exports = function (app) {
       programService.nominationsListAPI)
 
   app.route(BASE_URL + '/nomination/list/download')
-  .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.downloadNominationListAPI)
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.downloadNominationListAPI)
 
   app.route(BASE_URL + '/collection/link')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programUpdateCollectionAPI)
 
   app.route(BASE_URL + '/contenttypes/list')
-  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.programGetContentTypesAPI)
+    .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.programGetContentTypesAPI)
 
   app.route(BASE_URL + '/health')
-  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+    .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.healthAPI)
 
   app.route(BASE_URL + '/users/:user_id')
-  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.getUserDetailsAPI)
+    .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.getUserDetailsAPI)
 
   app.route(BASE_URL + '/collection/copy')
-  .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.programCopyCollectionAPI)
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.programCopyCollectionAPI)
 
   app.route(BASE_URL + '/configuration/list')
-  .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.getAllConfigurationsAPI)
+    .get(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.getAllConfigurationsAPI)
 
   app.route(BASE_URL + '/configuration/search')
-  .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
-    programService.getConfigurationByKeyAPI)
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.getConfigurationByKeyAPI)
 
-    app.route(BASE_URL + '/content/publish')
+  app.route(BASE_URL + '/content/publish')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.publishContentAPI)
+
+  app.route(BASE_URL + '/preference/create')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      userProgramPreference.setUserPreferences)
+
+  app.route(BASE_URL + '/preference/update')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      userProgramPreference.setUserPreferences)
+
+  app.route(BASE_URL + '/preference/read')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      userProgramPreference.getUserPreferences)
 }
