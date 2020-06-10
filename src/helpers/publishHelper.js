@@ -27,7 +27,8 @@ function getPublishContentEvent(metadata, textbookId, units) {
       "variants",
       "previewUrl",
       "streamingUrl",
-      "unitIdentifiers"
+      "unitIdentifiers",
+      "itemSets"
     ]);
     var ets = Date.now();
     var dataObj = {
