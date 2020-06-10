@@ -1552,12 +1552,13 @@ function publishContent(req, response){
   var rspObj = req.rspObj;
   const reqHeaders = req.headers;
   var data = req.body;
-  if (!data.request || !data.request.content_id || !data.request.textbook_id || !data.request.units) {
+  if (!data.request || !data.request.content_id || !data.request.origin ||
+    !data.request.origin.channel || !data.request.origin.textbook_id || !data.request.origin.units) {
     rspObj.errCode = programMessages.CONTENT_PUBLISH.MISSING_CODE
     rspObj.errMsg = programMessages.CONTENT_PUBLISH.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
     logger.error({
-      msg: 'Error due to missing request or request content_id or rquest textbook_id or rquest units',
+      msg: 'Error due to missing request or content_id or origin textbook_id or origin units or origin channel',
       err: {
         errCode: rspObj.errCode,
         errMsg: rspObj.errMsg,
@@ -1570,25 +1571,24 @@ function publishContent(req, response){
     return response.status(400).send(errorResponse(rspObj))
   }
 
-  forkJoin(publishHelper.getContentMetaData(data.request.content_id, reqHeaders), publishHelper.getTextBookMetaData(data.request.textbook_id))
+  publishHelper.getContentMetaData(data.request.content_id, reqHeaders)
     .pipe(
-      map(resMetaData => {
-        const contentMetaData = _.get(_.first(resMetaData), 'data.result.content');
-        const textbookMetaData = _.get(_.last(resMetaData), 'data.result.content');
-        if(!contentMetaData || !textbookMetaData) {
-          throw new Error("Fetching textbook or content metadata failed!");
+      map(responseMetaData => {
+        const contentMetaData =  _.get(responseMetaData, 'data.result.content');
+        if(!contentMetaData) {
+          throw new Error("Fetching content metadata failed!");
         }
-        return [contentMetaData, textbookMetaData]
+        return contentMetaData;
       }),
       catchError(err => {
         throw err;
-      }),
+      })
     )
     .subscribe(
-      ([contentMetaData, textbookMetaData]) => {
-        contentMetaData.channel = _.get(textbookMetaData, 'originData.channel') || contentMetaData.channel;
-        var units = _.isArray(data.request.units) ? data.request.units : [data.request.units];
-        const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.textbook_id, units);
+      (contentMetaData) => {
+        contentMetaData.channel = _.get(data, 'request.origin.channel') || contentMetaData.channel;
+        var units = _.isArray(data.request.origin.units) ? data.request.origin.units : [data.request.origin.units];
+        const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.origin.textbook_id, units);
         KafkaService.sendRecord(eventData, function (err, res) {
           if (err) {
             logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
@@ -1614,39 +1614,6 @@ function publishContent(req, response){
         return response.status(400).send(errorResponse(rspObj));
       }
     )
-
-  publishHelper.getContentMetaData(data.request.content_id, reqHeaders).then( contentMetaData =>{
-    if(contentMetaData.data && contentMetaData.data.result){
-      return contentMetaData;
-    } else {
-      throw new Error("Error while content read ", data.request.content_id);
-    }
-  }).then(contentMetaData => {
-    var units = _.isArray(data.request.units) ? data.request.units : [data.request.units];
-    const eventData = publishHelper.getPublishContentEvent(contentMetaData.data.result.content, data.request.textbook_id, units);
-    KafkaService.sendRecord(eventData, function (err, res) {
-      if (err) {
-        logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
-        rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
-        rspObj.errMsg = 'Error while sending event to kafka'
-        rspObj.responseCode = responseCode.SERVER_ERROR
-        return response.status(400).send(errorResponse(rspObj));
-      } else {
-        rspObj.responseCode = 'OK'
-        rspObj.result = {
-          'publishStatus': `Publish Operation for Content Id ${data.request.content_id} Started Successfully!`
-        }
-        return response.status(200).send(successResponse(rspObj));
-      }
-    });
-  }).catch(error => {
-    rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
-    rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
-    rspObj.responseCode = responseCode.SERVER_ERROR
-    loggerError('Unable to publish contnet',
-    rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error);
-    return response.status(400).send(errorResponse(rspObj));
-  });
 }
 
 function loggerError(msg, errCode, errMsg, responseCode, error, req) {
