@@ -69,4 +69,3 @@ function getPublishContentEvent(metadata, textbookId, units) {
 
 module.exports.getPublishContentEvent = getPublishContentEvent
 module.exports.getContentMetaData = getContentMetaData
-module.exports.getTextBookMetaData = getTextBookMetaData
