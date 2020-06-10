@@ -13,6 +13,7 @@ const model = require('../models');
 const {
   forkJoin
 } = require('rxjs');
+const { catchError , map } = require('rxjs/operators');
 const axios = require('axios');
 const envVariables = require('../envVariables');
 const RegistryService = require('./registryService')
@@ -653,7 +654,7 @@ async function downloadProgramDetails(req, res) {
     return res.status(400).send(errorResponse(rspObj));
   }
   programArr = _.isArray(data.request.filters.program_id) ? data.request.filters.program_id : [];
-  await _.forEach(programArr, (program) => { 
+  await _.forEach(programArr, (program) => {
     cacheManager.get(`program_details_${program}`, (err, cache) => {
       if (err || !cache) {
         filteredPrograms.push(program);
@@ -662,7 +663,7 @@ async function downloadProgramDetails(req, res) {
       }
     });
   });
-  
+
   if (filteredPrograms.length) {
   promiseRequests =  _.map(filteredPrograms, (program) => {
     return [programServiceHelper.getCollectionWithProgramId(program, req), programServiceHelper.getSampleContentWithProgramId(program, req),
@@ -1467,7 +1468,7 @@ async function generateApprovedContentReport(req, res) {
     return res.status(400).send(errorResponse(rspObj));
   }
   programArr = _.isArray(data.request.filters.program_id) ? data.request.filters.program_id : [];
-  await _.forEach(programArr, (program) => { 
+  await _.forEach(programArr, (program) => {
     cacheManager_programReport.get(`approvedContentCount_${program}`, (err, cache) => {
       if (err || !cache) {
         filteredPrograms.push(program);
@@ -1476,7 +1477,7 @@ async function generateApprovedContentReport(req, res) {
       }
     });
   });
-  
+
   if (filteredPrograms.length) {
     try {
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
@@ -1568,6 +1569,51 @@ function publishContent(req, response){
     })
     return response.status(400).send(errorResponse(rspObj))
   }
+
+  forkJoin(publishHelper.getContentMetaData(data.request.content_id, reqHeaders), publishHelper.getTextBookMetaData(data.request.textbook_id))
+    .pipe(
+      map(resMetaData => {
+        const contentMetaData = _.get(_.first(resMetaData), 'data.result.content');
+        const textbookMetaData = _.get(_.last(resMetaData), 'data.result.content');
+        if(!contentMetaData || !textbookMetaData) {
+          throw new Error("Fetching textbook or content metadata failed!");
+        }
+        return [contentMetaData, textbookMetaData]
+      }),
+      catchError(err => {
+        throw err;
+      }),
+    )
+    .subscribe(
+      ([contentMetaData, textbookMetaData]) => {
+        contentMetaData.channel = _.get(textbookMetaData, 'originData.channel') || contentMetaData.channel;
+        var units = _.isArray(data.request.units) ? data.request.units : [data.request.units];
+        const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.textbook_id, units);
+        KafkaService.sendRecord(eventData, function (err, res) {
+          if (err) {
+            logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
+            rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
+            rspObj.errMsg = 'Error while sending event to kafka'
+            rspObj.responseCode = responseCode.SERVER_ERROR
+            return response.status(400).send(errorResponse(rspObj));
+          } else {
+            rspObj.responseCode = 'OK'
+            rspObj.result = {
+              'publishStatus': `Publish Operation for Content Id ${data.request.content_id} Started Successfully!`
+            }
+            return response.status(200).send(successResponse(rspObj));
+          }
+        });
+      },
+      (error) => {
+        rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
+        rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
+        rspObj.responseCode = responseCode.SERVER_ERROR
+        loggerError('Unable to publish content',
+        rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error);
+        return response.status(400).send(errorResponse(rspObj));
+      }
+    )
 
   publishHelper.getContentMetaData(data.request.content_id, reqHeaders).then( contentMetaData =>{
     if(contentMetaData.data && contentMetaData.data.result){

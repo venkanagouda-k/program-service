@@ -13,6 +13,18 @@ function getContentMetaData(contentId, reqHeaders){
   return axios(option);
 }
 
+function getTextBookMetaData(textbookId){
+  const url = `${envVariables.baseURL}/action/content/v3/read/${textbookId}?fields=originData`;
+  const option = {
+    url: url,
+    method: "get",
+    headers: {
+      'content-type': 'application/json',
+    }
+  };
+  return axios(option);
+}
+
 function getPublishContentEvent(metadata, textbookId, units) {
     metadata.pkgVersion = `${metadata.pkgVersion}.0`;
     if(metadata.subject){
@@ -68,3 +80,4 @@ function getPublishContentEvent(metadata, textbookId, units) {
 
 module.exports.getPublishContentEvent = getPublishContentEvent
 module.exports.getContentMetaData = getContentMetaData
+module.exports.getTextBookMetaData = getTextBookMetaData
