@@ -89,6 +89,10 @@ module.exports = function (app) {
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.publishContentAPI)
 
+  app.route(BASE_URL + '/programCountsByOrg')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.programCountsByOrgAPI)
+
   app.route(BASE_URL + '/preference/create')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       userProgramPreference.setUserPreferences)

@@ -767,7 +767,23 @@ exports.PROGRAM = {
       FAILED_CODE: 'ERR_CREATING_COLLECTION',
       FAILED_MESSAGE: 'Unable to create collection'
     }
+  },
+  PROGRAMCOUNTS_BYORG: {
+    PROGRAMCOUNTS_FETCH: {
+      MISSING_CODE: 'ERR_GETTING_COUNTS',
+      MISSING_MESSAGE: 'Error due to missing request or request.facets or request.facets.rootorg_id',
+      FAILED_CODE: 'ERR_GET_PROGRAMCOUNTS_FAILED',
+      FAILED_MESSAGE: 'Error while fetching program count group by facets'
+    },
+    ORGSEARCH_FETCH: {
+      FAILED_CODE: 'ERR_GET_ORGS_FAILED',
+      FAILED_MESSAGE: 'Unable to search Organisations'
+    }
   }
+}
+
+exports.PROGRAMCOUNTSBYORG = {
+
 }
 
 exports.CONTENT_TYPE = {
