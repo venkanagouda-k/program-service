@@ -2,6 +2,7 @@ const uuid = require("uuid/v1")
 const _ = require("lodash");
 const envVariables = require("../envVariables");
 const axios = require("axios");
+const { from  } = require("rxjs");
 
 function getContentMetaData(contentId, reqHeaders){
   const url = `${envVariables.baseURL}/action/content/v3/read/${contentId}`;
@@ -10,17 +11,24 @@ function getContentMetaData(contentId, reqHeaders){
     method: "get",
     headers: reqHeaders
   };
-  return axios(option);
+  return from(axios(option));
 }
 
 function getPublishContentEvent(metadata, textbookId, units) {
-    metadata.pkgVersion = `${metadata.pkgVersion}.0`
+    metadata.pkgVersion = `${metadata.pkgVersion}.0`;
+    if(metadata.subject){
+      metadata.subject = _.isArray(metadata.subject) ? metadata.subject : [metadata.subject];
+    }
+    if(metadata.medium){
+      metadata.medium = _.isArray(metadata.medium) ? metadata.medium : [metadata.medium];
+    }
     metadata = _.omit(metadata, [
       "downloadUrl",
       "variants",
       "previewUrl",
       "streamingUrl",
-      "unitIdentifiers"
+      "unitIdentifiers",
+      "itemSets"
     ]);
     var ets = Date.now();
     var dataObj = {
