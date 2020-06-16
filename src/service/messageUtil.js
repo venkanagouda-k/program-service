@@ -782,10 +782,6 @@ exports.PROGRAM = {
   }
 }
 
-exports.PROGRAMCOUNTSBYORG = {
-
-}
-
 exports.CONTENT_TYPE = {
   FETCH: {
     FAILED_CODE: 'ERR_GET_PROGRAM_CONTENT_TYPE_FAILED',
