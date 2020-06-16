@@ -76,12 +76,11 @@ function getPreferencefromtable(userId, programId) {
     }).then(function (res) {
       retObj.res = res;
       return resolve(retObj);
-    })
-      .catch(function (err) {
+    }).catch(function (err) {
         retObj.error = true;
         retObj.res = err;
         return reject(retObj);
-      });
+    });
   });
 }
 
