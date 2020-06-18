@@ -223,19 +223,11 @@ function getProgramCountsByOrg(req, response) {
   var data = req.body
   var rspObj = req.rspObj
 
-  if (!data.request || !data.request.facets || !data.request.facets) {
-    rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.MISSING_CODE
-    rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.MISSING_MESSAGE
-    rspObj.responseCode = responseCode.CLIENT_ERROR
-    loggerError(rspObj.errMsg, rspObj.errCode, rspObj.errMsg, rspObj.responseCode, data, req)
-    return response.status(400).send(errorResponse(rspObj))
-  }
-
   rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.FAILED_CODE
   rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.FAILED_MESSAGE
   rspObj.responseCode = '';
 
-  const findQuery = data.request.filters ? data.request.filters : {}
+  const findQuery = (data.request && data.request.filters) ? data.request.filters : {}
   const facets = ["rootorg_id"];
   model.program.findAll({
     where: {
