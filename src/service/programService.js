@@ -13,6 +13,7 @@ const model = require('../models');
 const {
   forkJoin
 } = require('rxjs');
+const { catchError , map } = require('rxjs/operators');
 const axios = require('axios');
 const envVariables = require('../envVariables');
 const RegistryService = require('./registryService')
