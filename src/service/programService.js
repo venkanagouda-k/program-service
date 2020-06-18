@@ -13,7 +13,6 @@ const model = require('../models');
 const {
   forkJoin
 } = require('rxjs');
-const { catchError , map } = require('rxjs/operators');
 const axios = require('axios');
 const envVariables = require('../envVariables');
 const RegistryService = require('./registryService')
@@ -222,15 +221,20 @@ async function deleteProgram(req, response) {
 function getProgramCountsByOrg(req, response) {
   var data = req.body
   var rspObj = req.rspObj
-  rspObj.apiId = 'api.program.counts';
-  rspObj.apiVersion = '1.0';
-  rspObj.msgid =  uuid();
-  rspObj.result = {};
+
+  if (!data.request || !data.request.facets || !data.request.facets) {
+    rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.MISSING_CODE
+    rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    loggerError(rspObj.errMsg, rspObj.errCode, rspObj.errMsg, rspObj.responseCode, data, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+
   rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.FAILED_CODE
   rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.FAILED_MESSAGE
   rspObj.responseCode = '';
 
-  const findQuery = (data.request && data.request.filters) ? data.request.filters : {}
+  const findQuery = data.request.filters ? data.request.filters : {}
   const facets = ["rootorg_id"];
   model.program.findAll({
     where: {
@@ -239,28 +243,27 @@ function getProgramCountsByOrg(req, response) {
     attributes: [...facets, [Sequelize.fn('count', Sequelize.col(facets[0])), 'count']],
     group: [...facets]
   }).then((result) => {
+      const apiRes = _.keyBy(_.map(result, 'dataValues'), 'rootorg_id');
 
-    const orgIds = _.map(result, 'dataValues.rootorg_id');
-    if (_.isEmpty(result) || _.isEmpty(orgIds)) {
-      return response.status(200).send(successResponse(rspObj));
-    }
+      const orgIds = _.map(apiRes, 'rootorg_id');
+      if (_.isEmpty(result) || _.isEmpty(orgIds)) {
+        return response.status(200).send(successResponse(rspObj));
+      }
 
-    var apiRes = _.keyBy(_.map(result, 'dataValues'), 'rootorg_id');
-
-    getOrganisationDetails(req, orgIds).then((orgData) => {
-       _.forEach(orgData.data.result.response.content, function(el, index){
-        el.program_count = apiRes[el.id].count;
-      });
-      rspObj.result = orgData.data.result.response;
-      return response.status(200).send(successResponse(rspObj));
-    }, (error) => {
-      rspObj.responseCode = responseCode.SERVER_ERROR
-      rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.ORGSEARCH.FAILED_CODE
-      rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.ORGSEARCH.FAILED_MESSAGE
-      loggerError(rspObj.errMsg, rspObj.errCode, rspObj.errMsg, error.response.data.responseCode, data, req)
-      rspObj.result = err;
-      return response.status(400).send(errorResponse(rspObj));
-    })
+      getOrganisationDetails(req, orgIds).then((orgData) => {
+        _.forEach(orgData.data.result.response.content, function(el, index){
+          el.program_count = apiRes[el.id].count;
+        });
+        rspObj.result = orgData.data.result.response;
+        return response.status(200).send(successResponse(rspObj));
+      }, (error) => {
+        rspObj.responseCode = responseCode.SERVER_ERROR
+        rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.ORGSEARCH.FAILED_CODE
+        rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.ORGSEARCH.FAILED_MESSAGE
+        loggerError(rspObj.errMsg, rspObj.errCode, rspObj.errMsg, error.response.data.responseCode, data, req)
+        rspObj.result = err;
+        return response.status(400).send(errorResponse(rspObj));
+      })
   }).catch((err) => {
     rspObj.responseCode = responseCode.SERVER_ERROR
     loggerError('Error fetching program count group by facets',
@@ -268,7 +271,6 @@ function getProgramCountsByOrg(req, response) {
     rspObj.result = err;
     return response.status(400).send(errorResponse(rspObj));
   });
-
 }
 
  /* Get the org details by filters*/
@@ -318,30 +320,7 @@ function programList(req, response) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
 
-  const findQuery = data.request.filters ? data.request.filters : {}
-
-  if (data.request.facets) {
-    const facets = data.request.facets;
-    model.program.findAll({
-      where: {
-        ...findQuery
-      },
-      attributes: [...facets, [Sequelize.fn('count', Sequelize.col(facets[0])), 'count']],
-      group: [...facets]
-    }).then((result) => {
-      return response.status(200).send(successResponse({
-        apiId: 'api.program.list',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'OK',
-        result: result
-      }))
-    }).catch((err) => {
-      loggerError('Error fetching program count group by facets',
-      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
-      return response.status(400).send(errorResponse(rspObj));
-    })
-  } else if (data.request.filters && data.request.filters.enrolled_id) {
+  if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
       rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
@@ -760,7 +739,7 @@ async function downloadProgramDetails(req, res) {
       }
     });
   });
-
+  
   if (filteredPrograms.length) {
   promiseRequests =  _.map(filteredPrograms, (program) => {
     return [programServiceHelper.getCollectionWithProgramId(program, req), programServiceHelper.getSampleContentWithProgramId(program, req),
@@ -1574,7 +1553,7 @@ async function generateApprovedContentReport(req, res) {
       }
     });
   });
-
+  
   if (filteredPrograms.length) {
     try {
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
