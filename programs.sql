@@ -145,5 +145,5 @@ CREATE TABLE public.user_program_preference
 
 -- Sprint 11
 
-ALTER TYPE status ADD VALUE 'Retired';
 ALTER TYPE status ADD VALUE 'Unlisted';
+ALTER TYPE status ADD VALUE 'Retired';
