@@ -142,3 +142,8 @@ CREATE TABLE public.user_program_preference
     updatedon timestamp without time zone DEFAULT timezone('utc'::text, now()),
     CONSTRAINT user_program_preference_pkey PRIMARY KEY (user_id, program_id)
 )
+
+-- Sprint 11
+
+ALTER TYPE status ADD VALUE 'Unlisted';
+ALTER TYPE status ADD VALUE 'Retired';
