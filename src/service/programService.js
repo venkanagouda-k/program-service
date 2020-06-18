@@ -261,7 +261,6 @@ function getProgramCountsByOrg(req, response) {
     rspObj.responseCode = responseCode.SERVER_ERROR
     loggerError('Error fetching program count group by facets',
     rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
-    rspObj.result = {};
     return response.status(400).send(errorResponse(rspObj));
   });
 }
