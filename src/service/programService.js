@@ -300,7 +300,7 @@ function programList(req, response) {
   var rspObj = req.rspObj
   var res_limit = queryRes_Min;
   var res_offset = data.request.offset || 0;
-  if (!data.request || (!data.request.filters && !data.request.facets)) {
+  if (!data.request || !data.request.filters) {
     rspObj.errCode = programMessages.READ.MISSING_CODE
     rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
