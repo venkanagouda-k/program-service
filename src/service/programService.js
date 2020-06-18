@@ -219,6 +219,73 @@ async function deleteProgram(req, response) {
   });
 }
 
+function getProgramCountsByOrg(req, response) {
+  var data = req.body
+  var rspObj = req.rspObj
+
+  rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.FAILED_CODE
+  rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.PROGRAMCOUNTS_FETCH.FAILED_MESSAGE
+  rspObj.responseCode = '';
+
+  const findQuery = (data.request && data.request.filters) ? data.request.filters : {}
+  const facets = ["rootorg_id"];
+  model.program.findAll({
+    where: {
+      ...findQuery
+    },
+    attributes: [...facets, [Sequelize.fn('count', Sequelize.col(facets[0])), 'count']],
+    group: [...facets]
+  }).then((result) => {
+      const apiRes = _.keyBy(_.map(result, 'dataValues'), 'rootorg_id');
+
+      const orgIds = _.map(apiRes, 'rootorg_id');
+      if (_.isEmpty(result) || _.isEmpty(orgIds)) {
+        return response.status(200).send(successResponse(rspObj));
+      }
+
+      getOrganisationDetails(req, orgIds).then((orgData) => {
+        _.forEach(orgData.data.result.response.content, function(el, index){
+          el.program_count = apiRes[el.id].count;
+        });
+        rspObj.result = orgData.data.result.response;
+        return response.status(200).send(successResponse(rspObj));
+      }, (error) => {
+        rspObj.responseCode = responseCode.SERVER_ERROR
+        rspObj.errCode = programMessages.PROGRAMCOUNTS_BYORG.ORGSEARCH.FAILED_CODE
+        rspObj.errMsg = programMessages.PROGRAMCOUNTS_BYORG.ORGSEARCH.FAILED_MESSAGE
+        loggerError(rspObj.errMsg, rspObj.errCode, rspObj.errMsg, error.response.data.responseCode, data, req)
+        rspObj.result = err;
+        return response.status(400).send(errorResponse(rspObj));
+      })
+  }).catch((err) => {
+    rspObj.responseCode = responseCode.SERVER_ERROR
+    loggerError('Error fetching program count group by facets',
+    rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
+    return response.status(400).send(errorResponse(rspObj));
+  });
+}
+
+ /* Get the org details by filters*/
+ function getOrganisationDetails(req, orgList) {
+  const url = `${envVariables.baseURL}/api/org/v1/search`;
+  const reqData = {
+    "request": {
+      "filters": {
+        "id": orgList,
+        "status": 1,
+        "isRootOrg": true
+      },
+      "fields": ["id", "slug", "orgName", "orgCode", "imgUrl"]
+    }
+  }
+  return axios({
+    method: 'post',
+    url: url,
+    headers: req.headers,
+    data: reqData
+  });
+}
+
 function programList(req, response) {
   var data = req.body
   var rspObj = req.rspObj
@@ -244,6 +311,7 @@ function programList(req, response) {
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
+
   if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
@@ -663,7 +731,7 @@ async function downloadProgramDetails(req, res) {
       }
     });
   });
-
+  
   if (filteredPrograms.length) {
   promiseRequests =  _.map(filteredPrograms, (program) => {
     return [programServiceHelper.getCollectionWithProgramId(program, req), programServiceHelper.getSampleContentWithProgramId(program, req),
@@ -1477,7 +1545,7 @@ async function generateApprovedContentReport(req, res) {
       }
     });
   });
-
+  
   if (filteredPrograms.length) {
     try {
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
@@ -1689,3 +1757,4 @@ module.exports.getConfigurationByKeyAPI = getConfigurationByKey;
 module.exports.downloadProgramDetailsAPI = downloadProgramDetails
 module.exports.generateApprovedContentReportAPI = generateApprovedContentReport
 module.exports.publishContentAPI = publishContent
+module.exports.programCountsByOrgAPI = getProgramCountsByOrg
