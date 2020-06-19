@@ -312,7 +312,30 @@ function programList(req, response) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
 
-  if (data.request.filters && data.request.filters.enrolled_id) {
+  const findQuery = data.request.filters ? data.request.filters : {}
+  if (data.request.facets) {
+    const facets = data.request.facets;
+    model.nomination.findAll({
+      where: {
+        ...findQuery
+      },
+      attributes: [...facets, [Sequelize.fn('count', Sequelize.col(facets[0])), 'count']],
+      group: [...facets]
+    }).then((result) => {
+      rspObj.result = result;
+      return response.status(200).send(successResponse({
+        apiId: 'api.nomination.list',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'OK',
+        result: result
+      }))
+    }).catch((err) => {
+      loggerError('Error fetching nomination count group by facets',
+      rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
+      return response.status(400).send(errorResponse(rspObj));
+    })
+  } else if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
       rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
