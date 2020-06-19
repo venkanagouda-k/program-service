@@ -89,7 +89,7 @@ module.exports = function (app) {
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.publishContentAPI)
 
-  app.route(BASE_URL + '/programCountsByOrg')
+  app.route(BASE_URL + '/tenant/list')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programCountsByOrgAPI)
 
