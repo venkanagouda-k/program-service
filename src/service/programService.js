@@ -311,7 +311,7 @@ function programList(req, response) {
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
-
+  
   if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
