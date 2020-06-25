@@ -88,7 +88,6 @@ async function createProgram(req, response) {
   }
 
   model.program.create(insertObj).then(sc => {
-    console.log("Program successfully written to DB", sc);
     return response.status(200).send(successResponse({
       apiId: 'api.program.create',
       ver: '1.0',
