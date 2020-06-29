@@ -96,16 +96,31 @@ describe('Program Service', () => {
   })
 
   // eslint-disable-next-line no-undef
-  it('it should list nominations', (done) => {
-    const nominationList = { request: {filters: dummyData.nominationList} }
+  it('it should update a nomination', (done) => {
+    const nominationUpdate = { request: dummyData.nominationUpdate }
+    nominationUpdate.request.program_id = programId
     chai.request(app)
-      .post(BASE_URL + '/nomination/list')
+      .post(BASE_URL + '/nomination/update')
       .set('Accept', 'application/json')
-      .send(nominationList)
+      .send(nominationUpdate)
       // eslint-disable-next-line handle-callback-err
       .end((err, res) => {
         expect(res.status).to.equal(200)
         done()
       })
   })
+
+  // eslint-disable-next-line no-undef
+  // it('it should list nominations', (done) => {
+  //   const nominationList = { request: {filters: dummyData.nominationList} }
+  //   chai.request(app)
+  //     .post(BASE_URL + '/nomination/list')
+  //     .set('Accept', 'application/json')
+  //     .send(nominationList)
+  //     // eslint-disable-next-line handle-callback-err
+  //     .end((err, res) => {
+  //       expect(res.status).to.equal(200)
+  //       done()
+  //     })
+  // })
 })
