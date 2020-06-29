@@ -31,6 +31,10 @@ describe('Program Service', () => {
       })
       // eslint-disable-next-line handle-callback-err
       .end((err, res) => {
+        if (!err) {
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result.programs).to.be.a('array');
+        }
         expect(res.status).to.equal(200)
         done()
       })
@@ -46,6 +50,7 @@ describe('Program Service', () => {
       // eslint-disable-next-line handle-callback-err
       .end((err, res) => {
         expect(res.status).to.equal(200)
+        expect(res.body.result).to.have.property('program_id')
         done()
       })
   })
