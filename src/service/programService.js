@@ -1451,6 +1451,7 @@ async function programCopyCollections(req, response) {
             .subscribe(
               (originHierarchyResult) => {
                 const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                  console.log(_.get(r, 'data.result.content'));
                   return _.get(r, 'data')
                 })
                 hierarchyService.createCollection(originHierarchyResultData, reqHeaders)
