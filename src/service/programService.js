@@ -1219,7 +1219,10 @@ function getProgramContentTypes(req, response) {
   logger.debug({
     msg: 'Request to program to fetch content types'
   }, req)
-  model.contenttypes.findAndCountAll()
+  model.contenttypes.findAndCountAll({
+    distinct: true,
+    col: 'id',
+  })
     .then(res => {
       rspObj.result = {
         count: res.count,
