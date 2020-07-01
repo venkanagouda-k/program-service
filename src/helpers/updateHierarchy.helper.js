@@ -217,6 +217,7 @@ class HierarchyService {
           ..._.omit(data, [
             "children",
             "identifier",
+            "parent",
             "status",
             "reservedDialcodes",
             "dialcodes",
