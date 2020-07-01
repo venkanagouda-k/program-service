@@ -414,6 +414,8 @@ function programList(req, response) {
         },
         offset: res_offset,
         limit: res_limit,
+        distinct: true,
+        col: 'program_id',
         order: [
           ['updatedon', 'DESC']
         ]
