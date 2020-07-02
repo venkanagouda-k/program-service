@@ -412,6 +412,7 @@ function programList(req, response) {
         where: {
           ...data.request.filters
         },
+        attributes: data.request.fields || ["program_id", "name", "description", "type", "collection_ids", "content_types", "startdate", "enddate", "nomination_enddate", "shortlisting_enddate", "content_submission_enddate", "image", "status", "slug", "rolemapping", "createdby", "updatedby", "createdon", "updatedon", "rootorg_id", "sourcing_org_name", "channel", "template_id", "guidelines_url"],
         offset: res_offset,
         limit: res_limit,
         distinct: true,
