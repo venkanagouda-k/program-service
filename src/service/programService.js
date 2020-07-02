@@ -408,7 +408,7 @@ function programList(req, response) {
       }));
     });
   } else {
-    model.program.findAndCountAll({
+    model.program.findAll({
         where: {
           ...data.request.filters
         },
@@ -422,14 +422,15 @@ function programList(req, response) {
         ]
       })
       .then(function (res) {
+        const apiRes = _.map(res, 'dataValues');
         return response.status(200).send(successResponse({
           apiId: 'api.program.list',
           ver: '1.0',
           msgid: uuid(),
           responseCode: 'OK',
           result: {
-            count: res.count,
-            programs: res.rows
+            count: apiRes ? apiRes.length : 0,
+            programs: apiRes || []
           }
         }))
       })
