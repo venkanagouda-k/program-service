@@ -35,11 +35,7 @@ const registryService = new RegistryService()
 const hierarchyService = new HierarchyService()
 
 function getProgram(req, response) {
-  model.program.findOne({
-      where: {
-        program_id: req.params.program_id
-      }
-    })
+  model.program.findByPk(req.params.program_id)
     .then(function (res) {
       return response.status(200).send(successResponse({
         apiId: 'api.program.read',
@@ -412,11 +408,10 @@ function programList(req, response) {
         where: {
           ...data.request.filters
         },
-        attributes: data.request.fields || ["program_id", "name", "description", "type", "collection_ids", "content_types", "startdate", "enddate", "nomination_enddate", "shortlisting_enddate", "content_submission_enddate", "image", "status", "slug", "rolemapping", "createdby", "updatedby", "createdon", "updatedon", "rootorg_id", "sourcing_org_name", "channel", "template_id", "guidelines_url"],
+        attributes: data.request.fields || { include : [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'],
+        [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']], exclude: ['config']},
         offset: res_offset,
         limit: res_limit,
-        distinct: true,
-        col: 'program_id',
         order: [
           ['updatedon', 'DESC']
         ]
