@@ -78,7 +78,7 @@ async function createProgram(req, response) {
   }
   const insertObj = req.body.request;
   insertObj.program_id = uuid();
-  insertObj.config = insertObj.config ? JSON.stringify(insertObj.config) : "";
+  insertObj.config = insertObj.config || "";
   if (req.body.request.enddate) {
     insertObj.enddate = req.body.request.enddate
   }
@@ -136,9 +136,6 @@ function updateProgram(req, response) {
   const updateValue = _.cloneDeep(req.body.request);
   if (!updateValue.updatedon) {
     updateValue.updatedon = new Date();
-  }
-  if (updateValue.config) {
-    updateValue.config = JSON.stringify(updateValue.config);
   }
   model.program.update(updateValue, updateQuery).then(resData => {
     if (_.isArray(resData) && !resData[0]) {
