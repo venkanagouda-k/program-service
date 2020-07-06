@@ -641,7 +641,9 @@ function getNominationsList(req, response) {
         var userList = [];
         var orgList = [];
         _.forEach(result, function (data) {
-          userList.push(data.user_id);
+          if(data.user_id) {
+            userList.push(data.user_id);
+          }
 
           if (data.organisation_id) {
             orgList.push(data.organisation_id);
@@ -656,22 +658,24 @@ function getNominationsList(req, response) {
             result: result
           }))
         }
-
-        forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList)).subscribe((resData) => {
-          _.forEach(resData, function (data) {
+        forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList))
+        .subscribe((resData) => {
+          _.forEach(resData, (data) => {
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
+              const listOfUserId = _.map(result, 'user_id');
               _.forEach(data.data.result.User, (userData) => {
-                const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
+                const index = userData.userId ? _.indexOf(listOfUserId, userData.userId) : -1;
                 if (index !== -1) {
                   result[index].dataValues.userData = userData;
                 }
               })
             }
             if (data.data.result && !_.isEmpty(_.get(data, 'data.result.Org'))) {
+              const listOfOrgId = _.map(result, 'organisation_id');
               _.forEach(data.data.result.Org, (orgData) => {
-                const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
+                const index = orgData.osid ? _.indexOf(listOfOrgId, orgData.osid) : -1;
                 if (index !== -1) {
-                result[index].dataValues.orgData = orgData;
+                  result[index].dataValues.orgData = orgData;
                 }
               })
             }
@@ -685,16 +689,19 @@ function getNominationsList(req, response) {
             result: result
           }))
         }, (error) => {
+          console.log(err)
           loggerError('Error in fetching user/org details',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req);
           return response.status(400).send(errorResponse(rspObj));
         });
       } catch (err) {
+        console.log(err)
         loggerError('Error fetching nomination with limit and offset',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
           return response.status(400).send(errorResponse(rspObj));
       }
     }).catch(function (err) {
+      console.log(err)
       loggerError('Error fetching nomination with limit and offset',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
           return response.status(400).send(errorResponse(rspObj));
@@ -863,7 +870,6 @@ function aggregatedNominationCount(data, result) {
                 }
                 nominationSampleCounts = programServiceHelper.setNominationSampleCounts(relatedContents);
                   const userAndOrgResult = _.tail(promiseData, 2);
-                  debugger
                 _.forEach(userAndOrgResult, function (data) {
                   if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
                     _.forEach(data.data.result.User, (userData) => {
