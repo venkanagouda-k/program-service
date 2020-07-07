@@ -304,7 +304,7 @@ function programList(req, response) {
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
-  
+
   if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
@@ -673,7 +673,7 @@ function getNominationsList(req, response) {
           }
           if(allOrgData && !_.isEmpty(_.get(allOrgData, 'data.result.Org'))) {
             const listOfOrgId = _.map(result, 'organisation_id');
-            _.forEach(data.data.result.Org, (orgData) => {
+            _.forEach(allOrgData.data.result.Org, (orgData) => {
               const index = orgData.osid ? _.indexOf(listOfOrgId, orgData.osid) : -1;
               if (index !== -1) {
                 result[index].dataValues.orgData = orgData;
@@ -733,7 +733,7 @@ async function downloadProgramDetails(req, res) {
       }
     });
   });
-  
+
   if (filteredPrograms.length) {
   promiseRequests =  _.map(filteredPrograms, (program) => {
     return [programServiceHelper.getCollectionWithProgramId(program, req), programServiceHelper.getSampleContentWithProgramId(program, req),
@@ -941,7 +941,7 @@ function aggregatedNominationCount(data, result) {
 }
 
 function getUsersDetails(req, userList) {
-  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
+  const url = 'https://dock.sunbirded.org/content/reg/search' || `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -970,7 +970,7 @@ function getUsersDetails(req, userList) {
 
 
 function getOrgDetails(req, orgList) {
-  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
+  const url = 'https://dock.sunbirded.org/content/reg/search' || `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -1550,7 +1550,7 @@ async function generateApprovedContentReport(req, res) {
       }
     });
   });
-  
+
   if (filteredPrograms.length) {
     try {
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
