@@ -941,7 +941,7 @@ function aggregatedNominationCount(data, result) {
 }
 
 function getUsersDetails(req, userList) {
-  const url = 'https://dock.sunbirded.org/content/reg/search' || `${envVariables.OPENSABER_SERVICE_URL}/search`;
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
@@ -970,7 +970,7 @@ function getUsersDetails(req, userList) {
 
 
 function getOrgDetails(req, orgList) {
-  const url = 'https://dock.sunbirded.org/content/reg/search' || `${envVariables.OPENSABER_SERVICE_URL}/search`;
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
     "id": "open-saber.registry.search",
     "ver": "1.0",
