@@ -688,7 +688,7 @@ function getNominationsList(req, response) {
             result: result
           }))
         }, (error) => {
-          console.log(err)
+          console.log(error)
           loggerError('Error in fetching user/org details',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req);
           return response.status(400).send(errorResponse(rspObj));
