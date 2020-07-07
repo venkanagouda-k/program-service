@@ -658,10 +658,16 @@ function getNominationsList(req, response) {
             result: result
           }))
         }
-        forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList))
+        const userOrgAPIPromise = [];
+        userOrgAPIPromise.push(getUsersDetails(req, userList))
+        if(!_.isEmpty(orgList)) {
+          userOrgAPIPromise.push(getOrgDetails(req, orgList));
+        }
+
+        forkJoin(...userOrgAPIPromise)
         .subscribe((resData) => {
           const allUserData = _.first(resData);
-          const allOrgData = _.last(resData);
+          const allOrgData = userOrgAPIPromise.length > 1 ? _.last(resData) : {};
           if(allUserData && !_.isEmpty(_.get(allUserData, 'data.result.User'))) {
             const listOfUserId = _.map(result, 'user_id');
             _.forEach(allUserData.data.result.User, (userData) => {
