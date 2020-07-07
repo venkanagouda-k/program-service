@@ -966,6 +966,7 @@ function getUsersDetails(req, userList) {
       }
     }
   }
+  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
@@ -995,6 +996,7 @@ function getOrgDetails(req, orgList) {
       }
     }
   }
+  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
