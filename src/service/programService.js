@@ -660,27 +660,26 @@ function getNominationsList(req, response) {
         }
         forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList))
         .subscribe((resData) => {
-          _.forEach(resData, (data) => {
-            if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
-              const listOfUserId = _.map(result, 'user_id');
-              _.forEach(data.data.result.User, (userData) => {
-                const index = userData.userId ? _.indexOf(listOfUserId, userData.userId) : -1;
-                if (index !== -1) {
-                  result[index].dataValues.userData = userData;
-                }
-              })
-            }
-            if (data.data.result && !_.isEmpty(_.get(data, 'data.result.Org'))) {
-              const listOfOrgId = _.map(result, 'organisation_id');
-              _.forEach(data.data.result.Org, (orgData) => {
-                const index = orgData.osid ? _.indexOf(listOfOrgId, orgData.osid) : -1;
-                if (index !== -1) {
-                  result[index].dataValues.orgData = orgData;
-                }
-              })
-            }
-          });
-
+          const allUserData = _.first(resData);
+          const allOrgData = _.last(resData);
+          if(allUserData && !_.isEmpty(_.get(allUserData, 'data.result.User'))) {
+            const listOfUserId = _.map(result, 'user_id');
+            _.forEach(allUserData.data.result.User, (userData) => {
+              const index = userData.userId ? _.indexOf(listOfUserId, userData.userId) : -1;
+              if (index !== -1) {
+                result[index].dataValues.userData = userData;
+              }
+            })
+          }
+          if(allOrgData && !_.isEmpty(_.get(allOrgData, 'data.result.Org'))) {
+            const listOfOrgId = _.map(result, 'organisation_id');
+            _.forEach(data.data.result.Org, (orgData) => {
+              const index = orgData.osid ? _.indexOf(listOfOrgId, orgData.osid) : -1;
+              if (index !== -1) {
+                result[index].dataValues.orgData = orgData;
+              }
+            })
+          }
           return response.status(200).send(successResponse({
             apiId: 'api.nomination.list',
             ver: '1.0',
