@@ -681,7 +681,7 @@ function getNominationsList(req, response) {
           if(allUserData && !_.isEmpty(_.get(allUserData, 'data.result.User'))) {
             const listOfUserId = _.map(result, 'user_id');
             _.forEach(allUserData.data.result.User, (userData) => {
-              const index = userData.userId ? _.indexOf(listOfUserId, userData.userId) : -1;
+              const index = (userData && userData.userId) ? _.indexOf(listOfUserId, userData.userId) : -1;
               if (index !== -1) {
                 result[index].dataValues.userData = userData;
               }
@@ -690,7 +690,7 @@ function getNominationsList(req, response) {
           if(allOrgData && !_.isEmpty(_.get(allOrgData, 'data.result.Org'))) {
             const listOfOrgId = _.map(result, 'organisation_id');
             _.forEach(allOrgData.data.result.Org, (orgData) => {
-              const index = orgData.osid ? _.indexOf(listOfOrgId, orgData.osid) : -1;
+              const index = (orgData && orgData.osid) ? _.indexOf(listOfOrgId, orgData.osid) : -1;
               if (index !== -1) {
                 result[index].dataValues.orgData = orgData;
               }
