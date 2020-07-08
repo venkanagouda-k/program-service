@@ -1669,9 +1669,11 @@ function publishContent(req, response){
         if(!contentMetaData) {
           throw new Error("Fetching content metadata failed!");
         }
+        console.log(contentMetaData)
         return contentMetaData;
       }),
       catchError(err => {
+        console.log(err)
         throw err;
       })
     )
@@ -1682,6 +1684,7 @@ function publishContent(req, response){
         const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.origin.textbook_id, units);
         KafkaService.sendRecord(eventData, function (err, res) {
           if (err) {
+            console.log(err)
             logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
             rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
             rspObj.errMsg = 'Error while sending event to kafka'
@@ -1697,6 +1700,7 @@ function publishContent(req, response){
         });
       },
       (error) => {
+        console.log(error)
         rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
         rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
         rspObj.responseCode = responseCode.SERVER_ERROR
