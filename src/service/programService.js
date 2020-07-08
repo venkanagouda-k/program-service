@@ -323,28 +323,34 @@ function programList(req, response) {
       }, req)
       return response.status(400).send(errorResponse(rspObj))
     }
-    model.nomination.findAndCountAll({
+    model.nomination.findAll({
         where: {
           user_id: data.request.filters.enrolled_id.user_id
         },
         offset: res_offset,
         limit: res_limit,
         include: [{
-          model: model.program
+          model: model.program,
+          required: true,
+          attributes: {
+            include: [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
+            exclude: ['config']
+          }
         }],
         order: [
           ['updatedon', 'DESC']
         ]
       })
       .then((prg_list) => {
+        const apiRes = _.map(prg_list, 'dataValues');
         return response.status(200).send(successResponse({
           apiId: 'api.program.list',
           ver: '1.0',
           msgid: uuid(),
           responseCode: 'OK',
           result: {
-            count: prg_list.count,
-            programs: prg_list.rows
+            count: apiRes ? apiRes.length : 0,
+            programs: apiRes || []
           }
         }))
       })
@@ -405,8 +411,10 @@ function programList(req, response) {
         where: {
           ...data.request.filters
         },
-        attributes: data.request.fields || { include : [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'],
-        [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']], exclude: ['config']},
+        attributes: data.request.fields || {
+          include : [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
+          exclude: ['config']
+        },
         offset: res_offset,
         limit: res_limit,
         order: [
