@@ -5,7 +5,7 @@ const axios = require("axios");
 const { from  } = require("rxjs");
 
 function getContentMetaData(contentId, reqHeaders){
-  const url = `${envVariables.baseURL}/action/content/v3/read/${contentId}`;
+  const url = `http://content-service:9000/content/v3/read/${contentId}` || `${envVariables.baseURL}/action/content/v3/read/${contentId}`;
   const option = {
     url: url,
     method: "get",
