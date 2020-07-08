@@ -44,6 +44,7 @@ class HierarchyService {
           }
         }
       };
+
       return axios(option);
     });
 
@@ -59,7 +60,7 @@ class HierarchyService {
   }
 
   createCollection(collections, reqHeaders) {
-    const url = `http://content-service:9000/content/v3/create`;
+    const url = `${envVariables.CONTENT_SERVICE_URL}content/v3/create`;
 
     const bulkRequest = _.map(collections, collection => {
       const option = {
@@ -130,7 +131,7 @@ class HierarchyService {
     );
   }
 
-  existingHierarchyUpdateRequest(data, additionalMetaData) {
+  existingHierarchyUpdateRequest(data, additionalMetaData, children) {
     let instance = this;
     this.hierarchy = {};
     this.nodeModified = {};
@@ -138,13 +139,14 @@ class HierarchyService {
     return {
       nodesModified: instance.getFlatNodesModified(
         response.content,
-        additionalMetaData
+        additionalMetaData,
+        children
       ),
-      hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData)
+      hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData, children)
     };
   }
 
-  newHierarchyUpdateRequest(collection, additionalMetaData) {
+  newHierarchyUpdateRequest(collection, additionalMetaData, children) {
     let instance = this;
     this.hierarchy = {};
     this.nodeModified = {};
@@ -154,19 +156,22 @@ class HierarchyService {
       ...additionalMetaData,
       isFirstTime: true
     };
+
     return {
       nodesModified: instance.getFlatNodesModified(
         response.content,
-        additionalMetaData
+        additionalMetaData,
+        children
       ),
       hierarchy: instance.getFlatHierarchyObj(
         response.content,
-        additionalMetaData
+        additionalMetaData,
+        children
       )
     };
   }
 
-  getFlatHierarchyObj(data, additionalMetaData) {
+  getFlatHierarchyObj(data, additionalMetaData, children) {
     let instance = this;
     if (data) {
       if (additionalMetaData.isFirstTime && data.contentType === "TextBook") {
@@ -195,21 +200,25 @@ class HierarchyService {
         child.contentType === "TextBookUnit" ||
         child.contentType === "TextBook"
       ) {
-        instance.getFlatHierarchyObj(child, additionalMetaData);
+        instance.getFlatHierarchyObj(child, additionalMetaData, children);
       }
     });
     return instance.hierarchy;
   }
 
-  getFlatNodesModified(data, additionalMetaData) {
+  getFlatNodesModified(data, additionalMetaData, children) {
     let instance = this;
     let nodeId;
+    let openForContribution = false;
     if (data) {
       if (additionalMetaData.isFirstTime && data.contentType === "TextBook") {
         nodeId = additionalMetaData.identifier;
+        openForContribution = true;
       } else {
         nodeId = data.identifier;
+        openForContribution = (children.findIndex(item => item.id === data.identifier) != -1) ? true : false;
       }
+
       instance.nodeModified[nodeId] = {
         isNew: true,
         root: data.contentType === "TextBook" ? true : false,
@@ -238,7 +247,7 @@ class HierarchyService {
           }),
           programId: additionalMetaData.programId,
           allowedContentTypes: additionalMetaData.allowedContentTypes,
-          openForContribution: true,
+          openForContribution: openForContribution,
           channel: envVariables.DOCK_CHANNEL || "sunbird",
           origin: data.origin || data.identifier,
           originData: {
@@ -253,7 +262,7 @@ class HierarchyService {
         child.contentType === "TextBookUnit" ||
         child.contentType === "TextBook"
       ) {
-        instance.getFlatNodesModified(child, additionalMetaData);
+        instance.getFlatNodesModified(child, additionalMetaData, children);
       }
     });
     return instance.nodeModified;
