@@ -334,7 +334,7 @@ function programList(req, response) {
           required: true,
           attributes: {
             include: [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
-            exclude: ['config']
+            exclude: ['config', 'description', 'collection_ids']
           }
         }],
         order: [
@@ -413,7 +413,7 @@ function programList(req, response) {
         },
         attributes: data.request.fields || {
           include : [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
-          exclude: ['config']
+          exclude: ['config', 'collection_ids', 'description']
         },
         offset: res_offset,
         limit: res_limit,
