@@ -355,6 +355,7 @@ function programList(req, response) {
         }))
       })
       .catch(function (err) {
+        console.log(err)
         return response.status(400).send(errorResponse({
           apiId: 'api.program.list',
           ver: '1.0',
@@ -398,6 +399,7 @@ function programList(req, response) {
       }))
     })
     .catch(function (err) {
+      console.log(err)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.list',
         ver: '1.0',
