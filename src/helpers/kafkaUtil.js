@@ -5,7 +5,7 @@ const envVariables = require("../envVariables");
 
 const client = new kafka.KafkaClient({
   kafkaHost: envVariables.SUNBIRD_KAFKA_HOST,
-  maxAsyncRequests: 100
+  maxAsyncRequests: 200
 })
 
 const producer = new kafka.HighLevelProducer(client)
