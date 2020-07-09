@@ -1669,7 +1669,7 @@ function publishContent(req, response){
         if(!contentMetaData) {
           throw new Error("Fetching content metadata failed!");
         }
-        console.log(contentMetaData)
+        console.log(JSON.stringify(contentMetaData))
         return contentMetaData;
       }),
       catchError(err => {
