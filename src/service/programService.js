@@ -519,8 +519,7 @@ function updateNomination(req, response) {
     where: {
       program_id: data.request.program_id
     },
-    returning: true,
-    individualHooks: true
+    returning: true
   };
   if(data.request.user_id){
     updateQuery.where.user_id = data.request.user_id
