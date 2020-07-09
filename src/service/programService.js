@@ -1394,13 +1394,7 @@ async function programCopyCollections(req, response) {
   }
 
   const collections = _.get(data, 'request.collections');
-  // const primaryCollectionId = _.get(data, 'request.collections')[];
-  const collectionIds = [];
-
-  _.forEach(collections, (item) => {
-    collectionIds.push(item.id);
-  });
-
+  const collectionIds = _.map(collections, 'id');
   const additionalMetaData = {
     programId: _.get(data, 'request.program_id'),
     allowedContentTypes: _.get(data, 'request.allowed_content_types'),
@@ -1429,8 +1423,13 @@ async function programCopyCollections(req, response) {
                   return _.get(r, 'data')
                 })
                 const getCollectiveRequest = _.map(originHierarchyResultData, c => {
+                  let children = [];
                   const cindex = collections.findIndex(r => r.id === c.hierarchy.content.identifier);
-                  const children = collections[cindex].children;
+
+                  if (cindex !== -1) {
+                    children = collections[cindex].children;
+                  }
+
                   return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData, children);
                 })
                 hierarchyService.bulkUpdateHierarchy(getCollectiveRequest, reqHeaders)
@@ -1486,8 +1485,13 @@ async function programCopyCollections(req, response) {
                       return mapOriginalHierarchy;
                     })
                     const getBulkUpdateRequest = _.map(createdCollections, item => {
+                      let children = [];
                       const cindex = collections.findIndex(r => r.id === item.hierarchy.content.identifier);
-                      const children = collections[cindex].children;
+
+                      if (cindex !== -1) {
+                        children = collections[cindex].children;
+                      }
+
                       return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData, children)
                     })
 
