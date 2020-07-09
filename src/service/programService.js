@@ -1226,10 +1226,7 @@ function getProgramContentTypes(req, response) {
       rspObj.responseCode = 'OK'
       return response.status(200).send(successResponse(rspObj))
     }).catch(error => {
-
-      console.log(error);
-
-      logger.error({
+        logger.error({
         msg: 'Error fetching program content types',
         err: {
           errCode: rspObj.errCode,
