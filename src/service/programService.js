@@ -311,7 +311,7 @@ function programList(req, response) {
   if (data.request.limit) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
-  
+
   if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
@@ -731,7 +731,7 @@ async function downloadProgramDetails(req, res) {
       }
     });
   });
-  
+
   if (filteredPrograms.length) {
   promiseRequests =  _.map(filteredPrograms, (program) => {
     return [programServiceHelper.getCollectionWithProgramId(program, req), programServiceHelper.getSampleContentWithProgramId(program, req),
@@ -1226,7 +1226,7 @@ function getProgramContentTypes(req, response) {
       rspObj.responseCode = 'OK'
       return response.status(200).send(successResponse(rspObj))
     }).catch(error => {
-      logger.error({
+        logger.error({
         msg: 'Error fetching program content types',
         err: {
           errCode: rspObj.errCode,
@@ -1394,13 +1394,15 @@ async function programCopyCollections(req, response) {
   }
 
   const collections = _.get(data, 'request.collections');
+  const collectionIds = _.map(collections, 'id');
   const additionalMetaData = {
     programId: _.get(data, 'request.program_id'),
     allowedContentTypes: _.get(data, 'request.allowed_content_types'),
     channel: _.get(data, 'request.channel'),
-    openForContribution: true
+    openForContribution: false
   }
-  hierarchyService.filterExistingTextbooks(collections, reqHeaders)
+
+  hierarchyService.filterExistingTextbooks(collectionIds, reqHeaders)
     .subscribe(
       (resData) => {
         const consolidatedResult = _.map(resData, r => {
@@ -1409,8 +1411,10 @@ async function programCopyCollections(req, response) {
             config: r.config.data
           }
         })
+
         const existingTextbooks = hierarchyService.getExistingCollection(consolidatedResult);
         const nonExistingTextbooks = hierarchyService.getNonExistingCollection(consolidatedResult)
+
         if (existingTextbooks && existingTextbooks.length > 0) {
           hierarchyService.getHierarchy(existingTextbooks, reqHeaders)
             .subscribe(
@@ -1419,7 +1423,14 @@ async function programCopyCollections(req, response) {
                   return _.get(r, 'data')
                 })
                 const getCollectiveRequest = _.map(originHierarchyResultData, c => {
-                  return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData);
+                  let children = [];
+                  const cindex = collections.findIndex(r => r.id === c.hierarchy.content.identifier);
+
+                  if (cindex !== -1) {
+                    children = collections[cindex].children;
+                  }
+
+                  return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData, children);
                 })
                 hierarchyService.bulkUpdateHierarchy(getCollectiveRequest, reqHeaders)
                   .subscribe(updateResult => {
@@ -1453,6 +1464,7 @@ async function programCopyCollections(req, response) {
                 const originHierarchyResultData = _.map(originHierarchyResult, r => {
                   return _.get(r, 'data')
                 })
+
                 hierarchyService.createCollection(originHierarchyResultData, reqHeaders)
                   .subscribe(createResponse => {
                     const originHierarchy = _.map(originHierarchyResultData, 'result.content');
@@ -1473,8 +1485,16 @@ async function programCopyCollections(req, response) {
                       return mapOriginalHierarchy;
                     })
                     const getBulkUpdateRequest = _.map(createdCollections, item => {
-                      return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData)
+                      let children = [];
+                      const cindex = collections.findIndex(r => r.id === item.hierarchy.content.identifier);
+
+                      if (cindex !== -1) {
+                        children = collections[cindex].children;
+                      }
+
+                      return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData, children)
                     })
+
                     hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest, reqHeaders)
                       .subscribe(updateResult => {
                         const updateResultData = _.map(updateResult, obj => {
@@ -1545,7 +1565,7 @@ async function generateApprovedContentReport(req, res) {
       }
     });
   });
-  
+
   if (filteredPrograms.length) {
     try {
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
