@@ -47,6 +47,7 @@ function getProgram(req, response) {
       }))
     })
     .catch(function (err) {
+      console.log(err)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.read',
         ver: '1.0',
@@ -96,6 +97,7 @@ async function createProgram(req, response) {
       }
     }));
   }).catch(err => {
+    console.log(err)
     console.log("Error adding Program to db", err);
     return response.status(400).send(errorResponse({
       apiId: 'api.program.create',
@@ -140,6 +142,7 @@ function updateProgram(req, response) {
   }
   model.program.update(updateValue, updateQuery).then(resData => {
     if (_.isArray(resData) && !resData[0]) {
+      console.log(resData)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.update',
         ver: '1.0',
@@ -158,6 +161,7 @@ function updateProgram(req, response) {
       }
     }));
   }).catch(error => {
+    console.log(error)
     return response.status(400).send(errorResponse({
       apiId: 'api.program.update',
       ver: '1.0',
