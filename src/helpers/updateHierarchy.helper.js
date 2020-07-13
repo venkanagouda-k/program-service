@@ -147,12 +147,12 @@ class HierarchyService {
     };
   }
 
-  openForContribution(data, openForContribution) {
+  setOpenForContribution(data, openForContribution) {
     let instance = this;
     data["openForContribution"] = openForContribution;
 
     _.forEach(data.children, child => {
-        instance.openForContribution(child, openForContribution);
+        instance.setOpenForContribution(child, openForContribution);
     });
   }
 
@@ -176,10 +176,10 @@ class HierarchyService {
 
         if (cindex !== -1) {
           ++chapterCountForContribution;
-          instance.openForContribution(child, true);
+          instance.setOpenForContribution(child, true);
         }
         else {
-          instance.openForContribution(child, false);
+          instance.setOpenForContribution(child, false);
         }
     });
 
