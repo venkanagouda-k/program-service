@@ -129,7 +129,7 @@ class ProgramServiceHelper {
          status: ['Draft'],
          contentType: 'Textbook'
        },
-       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution'],
+       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution', 'chapterCountForContribution'],
        limit: 1000
      };
     return this.searchWithProgramId(queryFilter, req);
@@ -203,14 +203,22 @@ getContributionWithProgramId(program_id, req) {
       nominationResponse = _.isArray(resData[3]) && resData[3].length? _.map(resData[3], obj => obj.dataValues) : [];
       let tableData = [];
     if (collectionList.length) {
-        tableData = _.map(collectionList, (collection) => {
+      let openForContributionCollections = [];
+
+      _.forEach(collectionList, collection => {
+        if (collection.openForContribution === true) {
+          openForContributionCollections.push(collection);
+        }
+      });
+
+        tableData = _.map(openForContributionCollections, (collection) => {
         const result = {};
         // sequence of columns in tableData
         result['Textbook Name'] = collection.name;
         result['Medium'] = collection.medium || '--';
         result['Class'] = collection.gradeLevel && collection.gradeLevel.length ? collection.gradeLevel.join(', ') : '';
         result['Subject'] = collection.subject || '--';
-        result['Number of Chapters'] = collection.chapterCount || '--';
+        result['Number of Chapters'] = collection.chapterCountForContribution || collection.chapterCount || '--';
         result['Nominations Received'] = 0;
         result['Samples Received'] = 0;
         result['Nominations Accepted'] = 0;
