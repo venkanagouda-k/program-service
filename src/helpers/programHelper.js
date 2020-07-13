@@ -129,7 +129,7 @@ class ProgramServiceHelper {
          status: ['Draft'],
          contentType: 'Textbook'
        },
-       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents'],
+       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution', 'chapterCountForContribution'],
        limit: 1000
      };
     return this.searchWithProgramId(queryFilter, req);
@@ -203,14 +203,22 @@ getContributionWithProgramId(program_id, req) {
       nominationResponse = _.isArray(resData[3]) && resData[3].length? _.map(resData[3], obj => obj.dataValues) : [];
       let tableData = [];
     if (collectionList.length) {
-        tableData = _.map(collectionList, (collection) => {
+      let openForContributionCollections = [];
+
+      _.forEach(collectionList, collection => {
+        if (collection.openForContribution === true) {
+          openForContributionCollections.push(collection);
+        }
+      });
+
+        tableData = _.map(openForContributionCollections, (collection) => {
         const result = {};
         // sequence of columns in tableData
         result['Textbook Name'] = collection.name;
-        result['Medium'] = collection.medium || '--';
+        result['Medium'] = collection.medium;
         result['Class'] = collection.gradeLevel && collection.gradeLevel.length ? collection.gradeLevel.join(', ') : '';
-        result['Subject'] = collection.subject || '--';
-        result['Number of Chapters'] = collection.chapterCount || '--';
+        result['Subject'] = collection.subject;
+        result['Number of Chapters'] = collection.chapterCountForContribution || collection.chapterCount || 0;
         result['Nominations Received'] = 0;
         result['Samples Received'] = 0;
         result['Nominations Accepted'] = 0;
@@ -281,14 +289,28 @@ getContributionWithProgramId(program_id, req) {
     return axios(option);
   }
 
-  getCollectionHierarchy(req, program_id) {
+  getCollectionHierarchy(req, program_id, openForContribution) {
     return new Promise((resolve, reject) => {
       this.getCollectionWithProgramId(program_id, req).then((res_collection) => {
         const collectionArr = res_collection.data && res_collection.data.result && res_collection.data.result.content || [];
         forkJoin(..._.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier))).subscribe(data => {
         try {
           const hierarchyArr = _.compact(_.map(data, obj => obj.data.result && obj.data.result.content));
+
+          if (openForContribution == true) {
+            _.forEach(hierarchyArr, item => {
+              let children = [];
+              _.forEach(item.children, child=> {
+                if (child.openForContribution === true) {
+                  children.push(child);
+                }
+              });
+              item.children = children;
+            });
+          }
+
           const contentCount = this.approvedContentCount(hierarchyArr, program_id);
+
           resolve(contentCount);
         } catch (err) {
           reject('programServiceException: error in counting the approved contents');
