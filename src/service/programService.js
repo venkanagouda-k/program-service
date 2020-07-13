@@ -1568,7 +1568,7 @@ async function generateApprovedContentReport(req, res) {
 
   if (filteredPrograms.length) {
     try {
-    const openForContribution = true;
+    const openForContribution = data.request.filters.openForContribution || false;
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program, openForContribution));
     const aggregatedResult = await Promise.all(requests);
       _.forEach(aggregatedResult, result => {
