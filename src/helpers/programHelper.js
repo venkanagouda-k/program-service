@@ -129,7 +129,7 @@ class ProgramServiceHelper {
          status: ['Draft'],
          contentType: 'Textbook'
        },
-       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents'],
+       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution'],
        limit: 1000
      };
     return this.searchWithProgramId(queryFilter, req);
@@ -281,14 +281,28 @@ getContributionWithProgramId(program_id, req) {
     return axios(option);
   }
 
-  getCollectionHierarchy(req, program_id) {
+  getCollectionHierarchy(req, program_id, openForContribution) {
     return new Promise((resolve, reject) => {
       this.getCollectionWithProgramId(program_id, req).then((res_collection) => {
         const collectionArr = res_collection.data && res_collection.data.result && res_collection.data.result.content || [];
         forkJoin(..._.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier))).subscribe(data => {
         try {
           const hierarchyArr = _.compact(_.map(data, obj => obj.data.result && obj.data.result.content));
+
+          if (openForContribution == true) {
+            _.forEach(hierarchyArr, item => {
+              let children = [];
+              _.forEach(item.children, child=> {
+                if (child.openForContribution === true) {
+                  children.push(child);
+                }
+              });
+              item.children = children;
+            });
+          }
+
           const contentCount = this.approvedContentCount(hierarchyArr, program_id);
+
           resolve(contentCount);
         } catch (err) {
           reject('programServiceException: error in counting the approved contents');

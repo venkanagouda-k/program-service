@@ -136,6 +136,7 @@ class HierarchyService {
     this.hierarchy = {};
     this.nodeModified = {};
     const response = data.result;
+
     return {
       nodesModified: instance.getFlatNodesModified(
         response.content,
@@ -144,6 +145,15 @@ class HierarchyService {
       ),
       hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData, children)
     };
+  }
+
+  openForContribution(data, openForContribution) {
+    let instance = this;
+    data["openForContribution"] = openForContribution;
+
+    _.forEach(data.children, child => {
+        instance.openForContribution(child, openForContribution);
+    });
   }
 
   newHierarchyUpdateRequest(collection, additionalMetaData, children) {
@@ -156,6 +166,24 @@ class HierarchyService {
       ...additionalMetaData,
       isFirstTime: true
     };
+
+    // Set textbook allow to open for contribution
+    response.content['openForContribution'] = true;
+    let chapterCountForContribution = 0;
+
+    _.forEach(response.content.children, (child, i) => {
+        let cindex = children.findIndex(item => item.id === child.identifier);
+
+        if (cindex !== -1) {
+          ++chapterCountForContribution;
+          instance.openForContribution(child, true);
+        }
+        else {
+          instance.openForContribution(child, false);
+        }
+    });
+
+    response.content['chapterCountForContribution'] = chapterCountForContribution;
 
     return {
       nodesModified: instance.getFlatNodesModified(
@@ -187,7 +215,6 @@ class HierarchyService {
               (child.contentType === "TextBook" ||
                 child.contentType === "TextBookUnit")
             ) {
-              console.log(child.mimeType, child.identifier);
               return child.identifier;
             }
           })
@@ -209,14 +236,11 @@ class HierarchyService {
   getFlatNodesModified(data, additionalMetaData, children) {
     let instance = this;
     let nodeId;
-    let openForContribution = false;
     if (data) {
       if (additionalMetaData.isFirstTime && data.contentType === "TextBook") {
         nodeId = additionalMetaData.identifier;
-        openForContribution = true;
       } else {
         nodeId = data.identifier;
-        openForContribution = (children.findIndex(item => item.id === data.identifier) != -1) ? true : false;
       }
 
       instance.nodeModified[nodeId] = {
@@ -247,7 +271,6 @@ class HierarchyService {
           }),
           programId: additionalMetaData.programId,
           allowedContentTypes: additionalMetaData.allowedContentTypes,
-          openForContribution: openForContribution,
           channel: envVariables.DOCK_CHANNEL || "sunbird",
           origin: data.origin || data.identifier,
           originData: {
