@@ -215,10 +215,10 @@ getContributionWithProgramId(program_id, req) {
         const result = {};
         // sequence of columns in tableData
         result['Textbook Name'] = collection.name;
-        result['Medium'] = collection.medium || '--';
+        result['Medium'] = collection.medium;
         result['Class'] = collection.gradeLevel && collection.gradeLevel.length ? collection.gradeLevel.join(', ') : '';
-        result['Subject'] = collection.subject || '--';
-        result['Number of Chapters'] = collection.chapterCountForContribution || collection.chapterCount || '--';
+        result['Subject'] = collection.subject;
+        result['Number of Chapters'] = collection.chapterCountForContribution || collection.chapterCount || 0;
         result['Nominations Received'] = 0;
         result['Samples Received'] = 0;
         result['Nominations Accepted'] = 0;
