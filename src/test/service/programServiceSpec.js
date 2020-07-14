@@ -259,6 +259,54 @@ describe('Program Service', () => {
   })
 
   // eslint-disable-next-line no-undef
+  it('it should GET all programs with enrolledId in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            enrolled_id: {
+              user_id: dummyData.nominationAdd.user_id
+            }
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+          expect(res.body.result.programs[0]).to.have.property('program');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should GET all programs with enrolledId in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+              role: ['REVIEWER'],
+              user_id: dummyData.nominationAdd.user_id
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
   it('it should get contentTypes', (done) => {
     chai.request(app)
       .get(BASE_URL + '/contenttypes/list')
