@@ -1,6 +1,7 @@
 exports.programUpdate = {
     program_id: '',
-    description: 'description update by testCases'
+    description: 'description update by testCases',
+    rolemapping: {REVIEWER: ['f7dab7bc-b9ea-457a-b4d9-7633fbd9736c']}
 }
 
 exports.mandatoryFieldsProgramCreate = ['config', 'type'] // ['config', 'type', 'status', 'createdby']
