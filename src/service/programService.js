@@ -1252,7 +1252,7 @@ function getProgramContentTypes(req, response) {
       rspObj.responseCode = 'OK'
       return response.status(200).send(successResponse(rspObj))
     }).catch(error => {
-      logger.error({
+        logger.error({
         msg: 'Error fetching program content types',
         err: {
           errCode: rspObj.errCode,
@@ -1420,13 +1420,15 @@ async function programCopyCollections(req, response) {
   }
 
   const collections = _.get(data, 'request.collections');
+  const collectionIds = _.map(collections, 'id');
   const additionalMetaData = {
     programId: _.get(data, 'request.program_id'),
     allowedContentTypes: _.get(data, 'request.allowed_content_types'),
     channel: _.get(data, 'request.channel'),
-    openForContribution: true
+    openForContribution: false
   }
-  hierarchyService.filterExistingTextbooks(collections, reqHeaders)
+
+  hierarchyService.filterExistingTextbooks(collectionIds, reqHeaders)
     .subscribe(
       (resData) => {
         const consolidatedResult = _.map(resData, r => {
@@ -1435,8 +1437,10 @@ async function programCopyCollections(req, response) {
             config: r.config.data
           }
         })
+
         const existingTextbooks = hierarchyService.getExistingCollection(consolidatedResult);
         const nonExistingTextbooks = hierarchyService.getNonExistingCollection(consolidatedResult)
+
         if (existingTextbooks && existingTextbooks.length > 0) {
           hierarchyService.getHierarchy(existingTextbooks, reqHeaders)
             .subscribe(
@@ -1445,7 +1449,14 @@ async function programCopyCollections(req, response) {
                   return _.get(r, 'data')
                 })
                 const getCollectiveRequest = _.map(originHierarchyResultData, c => {
-                  return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData);
+                  let children = [];
+                  const cindex = collections.findIndex(r => r.id === c.hierarchy.content.identifier);
+
+                  if (cindex !== -1) {
+                    children = collections[cindex].children;
+                  }
+
+                  return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData, children);
                 })
                 hierarchyService.bulkUpdateHierarchy(getCollectiveRequest, reqHeaders)
                   .subscribe(updateResult => {
@@ -1480,6 +1491,7 @@ async function programCopyCollections(req, response) {
                   console.log(_.get(r, 'data.result.content'));
                   return _.get(r, 'data')
                 })
+
                 hierarchyService.createCollection(originHierarchyResultData, reqHeaders)
                   .subscribe(createResponse => {
                     const originHierarchy = _.map(originHierarchyResultData, 'result.content');
@@ -1500,8 +1512,16 @@ async function programCopyCollections(req, response) {
                       return mapOriginalHierarchy;
                     })
                     const getBulkUpdateRequest = _.map(createdCollections, item => {
-                      return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData)
+                      let children = [];
+                      const cindex = collections.findIndex(r => r.id === item.hierarchy.content.identifier);
+
+                      if (cindex !== -1) {
+                        children = collections[cindex].children;
+                      }
+
+                      return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData, children)
                     })
+
                     hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest, reqHeaders)
                       .subscribe(updateResult => {
                         const updateResultData = _.map(updateResult, obj => {
@@ -1575,7 +1595,8 @@ async function generateApprovedContentReport(req, res) {
 
   if (filteredPrograms.length) {
     try {
-    const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program));
+    const openForContribution = data.request.filters.openForContribution || false;
+    const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program, openForContribution));
     const aggregatedResult = await Promise.all(requests);
       _.forEach(aggregatedResult, result => {
         cacheManager_programReport.set({ key: `approvedContentCount_${result.program_id}`, value: result },

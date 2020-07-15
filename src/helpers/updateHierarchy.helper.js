@@ -47,7 +47,6 @@ class HierarchyService {
       console.log(option.data.request.data);
       return axios(option);
     });
-
     return forkJoin(...bulkRequest);
   }
 
@@ -60,7 +59,7 @@ class HierarchyService {
   }
 
   createCollection(collections, reqHeaders) {
-    const url = `http://content-service:9000/content/v3/create`;
+    const url = `${envVariables.CONTENT_SERVICE_URL}content/v3/create`;
 
     const bulkRequest = _.map(collections, collection => {
       const option = {
@@ -131,21 +130,32 @@ class HierarchyService {
     );
   }
 
-  existingHierarchyUpdateRequest(data, additionalMetaData) {
+  existingHierarchyUpdateRequest(data, additionalMetaData, children) {
     let instance = this;
     this.hierarchy = {};
     this.nodeModified = {};
     const response = data.result;
+
     return {
       nodesModified: instance.getFlatNodesModified(
         response.content,
-        additionalMetaData
+        additionalMetaData,
+        children
       ),
-      hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData)
+      hierarchy: instance.getFlatHierarchyObj(response.content, additionalMetaData, children)
     };
   }
 
-  newHierarchyUpdateRequest(collection, additionalMetaData) {
+  setOpenForContribution(data, openForContribution) {
+    let instance = this;
+    data["openForContribution"] = openForContribution;
+
+    _.forEach(data.children, child => {
+        instance.setOpenForContribution(child, openForContribution);
+    });
+  }
+
+  newHierarchyUpdateRequest(collection, additionalMetaData, children) {
     let instance = this;
     this.hierarchy = {};
     this.nodeModified = {};
@@ -155,19 +165,40 @@ class HierarchyService {
       ...additionalMetaData,
       isFirstTime: true
     };
+
+    // Set textbook allow to open for contribution
+    response.content['openForContribution'] = true;
+    let chapterCountForContribution = 0;
+
+    _.forEach(response.content.children, (child, i) => {
+        let cindex = children.findIndex(item => item.id === child.identifier);
+
+        if (cindex !== -1) {
+          ++chapterCountForContribution;
+          instance.setOpenForContribution(child, true);
+        }
+        else {
+          instance.setOpenForContribution(child, false);
+        }
+    });
+
+    response.content['chapterCountForContribution'] = chapterCountForContribution;
+
     return {
       nodesModified: instance.getFlatNodesModified(
         response.content,
-        additionalMetaData
+        additionalMetaData,
+        children
       ),
       hierarchy: instance.getFlatHierarchyObj(
         response.content,
-        additionalMetaData
+        additionalMetaData,
+        children
       )
     };
   }
 
-  getFlatHierarchyObj(data, additionalMetaData) {
+  getFlatHierarchyObj(data, additionalMetaData, children) {
     let instance = this;
     if (data) {
       if (additionalMetaData.isFirstTime && data.contentType === "TextBook") {
@@ -183,7 +214,6 @@ class HierarchyService {
               (child.contentType === "TextBook" ||
                 child.contentType === "TextBookUnit")
             ) {
-              console.log(child.mimeType, child.identifier);
               return child.identifier;
             }
           })
@@ -196,13 +226,13 @@ class HierarchyService {
         child.contentType === "TextBookUnit" ||
         child.contentType === "TextBook"
       ) {
-        instance.getFlatHierarchyObj(child, additionalMetaData);
+        instance.getFlatHierarchyObj(child, additionalMetaData, children);
       }
     });
     return instance.hierarchy;
   }
 
-  getFlatNodesModified(data, additionalMetaData) {
+  getFlatNodesModified(data, additionalMetaData, children) {
     let instance = this;
     let nodeId;
     if (data) {
@@ -211,6 +241,7 @@ class HierarchyService {
       } else {
         nodeId = data.identifier;
       }
+
       instance.nodeModified[nodeId] = {
         isNew: true,
         root: data.contentType === "TextBook" ? true : false,
@@ -218,6 +249,7 @@ class HierarchyService {
           ..._.omit(data, [
             "children",
             "identifier",
+            "parent",
             "status",
             "reservedDialcodes",
             "dialcodes",
@@ -238,7 +270,6 @@ class HierarchyService {
           }),
           programId: additionalMetaData.programId,
           allowedContentTypes: additionalMetaData.allowedContentTypes,
-          openForContribution: true,
           channel: envVariables.DOCK_CHANNEL || "sunbird",
           origin: data.origin || data.identifier,
           originData: {
@@ -253,7 +284,7 @@ class HierarchyService {
         child.contentType === "TextBookUnit" ||
         child.contentType === "TextBook"
       ) {
-        instance.getFlatNodesModified(child, additionalMetaData);
+        instance.getFlatNodesModified(child, additionalMetaData, children);
       }
     });
     return instance.nodeModified;

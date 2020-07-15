@@ -147,3 +147,6 @@ CREATE TABLE public.user_program_preference
 
 ALTER TYPE status ADD VALUE 'Unlisted';
 ALTER TYPE status ADD VALUE 'Retired';
+
+-- Sprint 12
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('contentVideoSize', 15000, 'active');
