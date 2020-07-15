@@ -328,76 +328,47 @@ function programList(req, response) {
       }, req)
       return response.status(400).send(errorResponse(rspObj))
     }
-    sequelize.query(
-      'SELECT "nomination"."id", "nomination"."program_id", "nomination"."user_id", "nomination"."organisation_id", "nomination"."status", "nomination"."content_types", "nomination"."collection_ids", "nomination"."feedback", "nomination"."rolemapping", "nomination"."createdby", "nomination"."updatedby", "nomination"."createdon", "nomination"."updatedon", "program"."program_id" AS "program.program_id", "program"."name" AS "program.name", "program"."description" AS "program.description", "program"."type" AS "program.type", "program"."collection_ids" AS "program.collection_ids", "program"."content_types" AS "program.content_types", "program"."startdate" AS "program.startdate", "program"."enddate" AS "program.enddate", "program"."nomination_enddate" AS "program.nomination_enddate", "program"."shortlisting_enddate" AS "program.shortlisting_enddate", "program"."content_submission_enddate" AS "program.content_submission_enddate", "program"."image" AS "program.image", "program"."status" AS "program.status", "program"."slug" AS "program.slug", "program"."rolemapping" AS "program.rolemapping", "program"."createdby" AS "program.createdby", "program"."updatedby" AS "program.updatedby", "program"."createdon" AS "program.createdon", "program"."updatedon" AS "program.updatedon", "program"."rootorg_id" AS "program.rootorg_id", "program"."sourcing_org_name" AS "program.sourcing_org_name", "program"."channel" AS "program.channel", "program"."template_id" AS "program.template_id", "program"."guidelines_url" AS "program.guidelines_url", ("program"."config"#>>\'{subject}\') AS "program.subject", ("program"."config"#>>\'{defaultContributeOrgReview}\') AS "program.defaultContributeOrgReview", ("program"."config"#>>\'{framework}\') AS "program.framework", ("program"."config"#>>\'{board}\') AS "program.board", ("program"."config"#>>\'{gradeLevel}\') AS "program.gradeLevel", ("program"."config"#>>\'{medium}\') AS "program.medium" \
-      FROM "nomination" AS "nomination" INNER JOIN "program" AS "program" ON "nomination"."program_id" = "program"."program_id" \
-      WHERE "nomination"."user_id" = ? ORDER BY "nomination"."updatedon" DESC LIMIT ? OFFSET ?',
-    {
-      replacements: [data.request.filters.enrolled_id.user_id, res_limit, res_offset],
-      type: Sequelize.QueryTypes.SELECT
-    }).then((prg_list) => {
-      return response.status(200).send(successResponse({
-        apiId: 'api.program.list',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'OK',
-        result: {
-          count: prg_list ? prg_list.length : 0,
-          programs: prg_list || []
-        }
-      }))
-    })
-    .catch(function (err) {
-      console.log(err)
-      return response.status(400).send(errorResponse({
-        apiId: 'api.program.list',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'ERR_LIST_PROGRAM',
-        result: err
-      }));
-    });
-    // model.nomination.findAll({
-    //     where: {
-    //       user_id: data.request.filters.enrolled_id.user_id
-    //     },
-    //     offset: res_offset,
-    //     limit: res_limit,
-    //     include: [{
-    //       model: model.program,
-    //       required: true,
-    //       attributes: {
-    //         include: [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
-    //         exclude: ['config', 'description']
-    //       }
-    //     }],
-    //     order: [
-    //       ['updatedon', 'DESC']
-    //     ]
-    //   })
-    //   .then((prg_list) => {
-    //     const apiRes = _.map(prg_list, 'dataValues');
-    //     return response.status(200).send(successResponse({
-    //       apiId: 'api.program.list',
-    //       ver: '1.0',
-    //       msgid: uuid(),
-    //       responseCode: 'OK',
-    //       result: {
-    //         count: apiRes ? apiRes.length : 0,
-    //         programs: apiRes || []
-    //       }
-    //     }))
-    //   })
-    //   .catch(function (err) {
-    //     console.log(err)
-    //     return response.status(400).send(errorResponse({
-    //       apiId: 'api.program.list',
-    //       ver: '1.0',
-    //       msgid: uuid(),
-    //       responseCode: 'ERR_LIST_PROGRAM',
-    //       result: err
-    //     }));
-    //   });
+    model.nomination.findAll({
+        where: {
+          user_id: data.request.filters.enrolled_id.user_id
+        },
+        offset: res_offset,
+        limit: res_limit,
+        include: [{
+          model: model.program,
+          required: true,
+          attributes: {
+            include: [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
+            exclude: ['config', 'description']
+          }
+        }],
+        order: [
+          ['updatedon', 'DESC']
+        ]
+      })
+      .then((prg_list) => {
+        const apiRes = _.map(prg_list, 'dataValues');
+        return response.status(200).send(successResponse({
+          apiId: 'api.program.list',
+          ver: '1.0',
+          msgid: uuid(),
+          responseCode: 'OK',
+          result: {
+            count: apiRes ? apiRes.length : 0,
+            programs: apiRes || []
+          }
+        }))
+      })
+      .catch(function (err) {
+        console.log(err)
+        return response.status(400).send(errorResponse({
+          apiId: 'api.program.list',
+          ver: '1.0',
+          msgid: uuid(),
+          responseCode: 'ERR_LIST_PROGRAM',
+          result: err
+        }));
+      });
   } else if (data.request.filters && data.request.filters.role && data.request.filters.user_id) {
     const promises = [];
     _.forEach(data.request.filters.role, (role) => {

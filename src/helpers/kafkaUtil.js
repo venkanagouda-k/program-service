@@ -5,7 +5,7 @@ const envVariables = require("../envVariables");
 
 const client = new kafka.KafkaClient({
   kafkaHost: envVariables.SUNBIRD_KAFKA_HOST,
-  maxAsyncRequests: 10
+  maxAsyncRequests: 100
 })
 
 const producer = new kafka.HighLevelProducer(client)
@@ -21,7 +21,7 @@ producer.on('error', function (error) {
 })
 
 const KafkaService = {
-  sendRecord: (data, callback = () => { }) => { 
+  sendRecord: (data, callback = () => { }) => {
     if (_.isEmpty(data)) {
       logger.error({msg: 'Data must be provided to send Record', additionalInfo: {data}})
       return callback(new Error('Event Data must be provided.'))
