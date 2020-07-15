@@ -79,7 +79,7 @@ async function createProgram(req, response) {
   }
   const insertObj = req.body.request;
   insertObj.program_id = uuid();
-  insertObj.config = insertObj.config || "";
+  insertObj.config = insertObj.config || {};
   if (req.body.request.enddate) {
     insertObj.enddate = req.body.request.enddate
   }
