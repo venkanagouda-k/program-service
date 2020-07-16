@@ -35,11 +35,7 @@ const registryService = new RegistryService()
 const hierarchyService = new HierarchyService()
 
 function getProgram(req, response) {
-  model.program.findOne({
-      where: {
-        program_id: req.params.program_id
-      }
-    })
+  model.program.findByPk(req.params.program_id)
     .then(function (res) {
       return response.status(200).send(successResponse({
         apiId: 'api.program.read',
@@ -50,6 +46,7 @@ function getProgram(req, response) {
       }))
     })
     .catch(function (err) {
+      console.log(err)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.read',
         ver: '1.0',
@@ -82,7 +79,7 @@ async function createProgram(req, response) {
   }
   const insertObj = req.body.request;
   insertObj.program_id = uuid();
-  insertObj.config = insertObj.config ? JSON.stringify(insertObj.config) : "";
+  insertObj.config = insertObj.config || {};
   if (req.body.request.enddate) {
     insertObj.enddate = req.body.request.enddate
   }
@@ -99,6 +96,7 @@ async function createProgram(req, response) {
       }
     }));
   }).catch(err => {
+    console.log(err)
     console.log("Error adding Program to db", err);
     return response.status(400).send(errorResponse({
       apiId: 'api.program.create',
@@ -141,11 +139,9 @@ function updateProgram(req, response) {
   if (!updateValue.updatedon) {
     updateValue.updatedon = new Date();
   }
-  if (updateValue.config) {
-    updateValue.config = JSON.stringify(updateValue.config);
-  }
   model.program.update(updateValue, updateQuery).then(resData => {
     if (_.isArray(resData) && !resData[0]) {
+      console.log(resData)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.update',
         ver: '1.0',
@@ -164,6 +160,7 @@ function updateProgram(req, response) {
       }
     }));
   }).catch(error => {
+    console.log(error)
     return response.status(400).send(errorResponse({
       apiId: 'api.program.update',
       ver: '1.0',
@@ -330,32 +327,39 @@ function programList(req, response) {
       }, req)
       return response.status(400).send(errorResponse(rspObj))
     }
-    model.nomination.findAndCountAll({
+    model.nomination.findAll({
         where: {
           user_id: data.request.filters.enrolled_id.user_id
         },
         offset: res_offset,
         limit: res_limit,
         include: [{
-          model: model.program
+          model: model.program,
+          required: true,
+          attributes: {
+            include: [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
+            exclude: ['config', 'description']
+          }
         }],
         order: [
           ['updatedon', 'DESC']
         ]
       })
       .then((prg_list) => {
+        const apiRes = _.map(prg_list, 'dataValues');
         return response.status(200).send(successResponse({
           apiId: 'api.program.list',
           ver: '1.0',
           msgid: uuid(),
           responseCode: 'OK',
           result: {
-            count: prg_list.count,
-            programs: prg_list.rows
+            count: apiRes ? apiRes.length : 0,
+            programs: apiRes || []
           }
         }))
       })
       .catch(function (err) {
+        console.log(err)
         return response.status(400).send(errorResponse({
           apiId: 'api.program.list',
           ver: '1.0',
@@ -399,6 +403,7 @@ function programList(req, response) {
       }))
     })
     .catch(function (err) {
+      console.log(err)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.list',
         ver: '1.0',
@@ -408,9 +413,13 @@ function programList(req, response) {
       }));
     });
   } else {
-    model.program.findAndCountAll({
+    model.program.findAll({
         where: {
           ...data.request.filters
+        },
+        attributes: data.request.fields || {
+          include : [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
+          exclude: ['config', 'collection_ids', 'description']
         },
         offset: res_offset,
         limit: res_limit,
@@ -419,14 +428,15 @@ function programList(req, response) {
         ]
       })
       .then(function (res) {
+        const apiRes = _.map(res, 'dataValues');
         return response.status(200).send(successResponse({
           apiId: 'api.program.list',
           ver: '1.0',
           msgid: uuid(),
           responseCode: 'OK',
           result: {
-            count: res.count,
-            programs: res.rows
+            count: apiRes ? apiRes.length : 0,
+            programs: apiRes || []
           }
         }))
       })
@@ -645,7 +655,9 @@ function getNominationsList(req, response) {
         var userList = [];
         var orgList = [];
         _.forEach(result, function (data) {
-          userList.push(data.user_id);
+          if(data.user_id) {
+            userList.push(data.user_id);
+          }
 
           if (data.organisation_id) {
             orgList.push(data.organisation_id);
@@ -660,27 +672,34 @@ function getNominationsList(req, response) {
             result: result
           }))
         }
+        const userOrgAPIPromise = [];
+        userOrgAPIPromise.push(getUsersDetails(req, userList))
+        if(!_.isEmpty(orgList)) {
+          userOrgAPIPromise.push(getOrgDetails(req, orgList));
+        }
 
-        forkJoin(getUsersDetails(req, userList), getOrgDetails(req, orgList)).subscribe((resData) => {
-          _.forEach(resData, function (data) {
-            if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
-              _.forEach(data.data.result.User, (userData) => {
-                const index = _.indexOf(_.map(result, 'user_id'), userData.userId)
-                if (index !== -1) {
-                  result[index].dataValues.userData = userData;
-                }
-              })
-            }
-            if (data.data.result && !_.isEmpty(_.get(data, 'data.result.Org'))) {
-              _.forEach(data.data.result.Org, (orgData) => {
-                const index = _.indexOf(_.map(result, 'organisation_id'), orgData.osid)
-                if (index !== -1) {
+        forkJoin(...userOrgAPIPromise)
+        .subscribe((resData) => {
+          const allUserData = _.first(resData);
+          const allOrgData = userOrgAPIPromise.length > 1 ? _.last(resData) : {};
+          if(allUserData && !_.isEmpty(_.get(allUserData, 'data.result.User'))) {
+            const listOfUserId = _.map(result, 'user_id');
+            _.forEach(allUserData.data.result.User, (userData) => {
+              const index = (userData && userData.userId) ? _.indexOf(listOfUserId, userData.userId) : -1;
+              if (index !== -1) {
+                result[index].dataValues.userData = userData;
+              }
+            })
+          }
+          if(allOrgData && !_.isEmpty(_.get(allOrgData, 'data.result.Org'))) {
+            const listOfOrgId = _.map(result, 'organisation_id');
+            _.forEach(allOrgData.data.result.Org, (orgData) => {
+              const index = (orgData && orgData.osid) ? _.indexOf(listOfOrgId, orgData.osid) : -1;
+              if (index !== -1) {
                 result[index].dataValues.orgData = orgData;
-                }
-              })
-            }
-          });
-
+              }
+            })
+          }
           return response.status(200).send(successResponse({
             apiId: 'api.nomination.list',
             ver: '1.0',
@@ -689,16 +708,19 @@ function getNominationsList(req, response) {
             result: result
           }))
         }, (error) => {
+          console.log(error)
           loggerError('Error in fetching user/org details',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req);
           return response.status(400).send(errorResponse(rspObj));
         });
       } catch (err) {
+        console.log(err)
         loggerError('Error fetching nomination with limit and offset',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
           return response.status(400).send(errorResponse(rspObj));
       }
     }).catch(function (err) {
+      console.log(err)
       loggerError('Error fetching nomination with limit and offset',
           rspObj.errCode, rspObj.errMsg, rspObj.responseCode, err, req);
           return response.status(400).send(errorResponse(rspObj));
@@ -867,7 +889,6 @@ function aggregatedNominationCount(data, result) {
                 }
                 nominationSampleCounts = programServiceHelper.setNominationSampleCounts(relatedContents);
                   const userAndOrgResult = _.tail(promiseData, 2);
-                  debugger
                 _.forEach(userAndOrgResult, function (data) {
                   if (data.data.result && !_.isEmpty(_.get(data, 'data.result.User'))) {
                     _.forEach(data.data.result.User, (userData) => {
@@ -959,6 +980,7 @@ function getUsersDetails(req, userList) {
       }
     }
   }
+  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
@@ -988,6 +1010,7 @@ function getOrgDetails(req, orgList) {
       }
     }
   }
+  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
@@ -1217,7 +1240,10 @@ function getProgramContentTypes(req, response) {
   logger.debug({
     msg: 'Request to program to fetch content types'
   }, req)
-  model.contenttypes.findAndCountAll()
+  model.contenttypes.findAndCountAll({
+    distinct: true,
+    col: 'id',
+  })
     .then(res => {
       rspObj.result = {
         count: res.count,
@@ -1462,6 +1488,7 @@ async function programCopyCollections(req, response) {
             .subscribe(
               (originHierarchyResult) => {
                 const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                  console.log(_.get(r, 'data.result.content'));
                   return _.get(r, 'data')
                 })
 
@@ -1667,9 +1694,11 @@ function publishContent(req, response){
         if(!contentMetaData) {
           throw new Error("Fetching content metadata failed!");
         }
+        console.log(JSON.stringify(contentMetaData))
         return contentMetaData;
       }),
       catchError(err => {
+        console.log(err)
         throw err;
       })
     )
@@ -1680,6 +1709,7 @@ function publishContent(req, response){
         const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.origin.textbook_id, units);
         KafkaService.sendRecord(eventData, function (err, res) {
           if (err) {
+            console.log(err)
             logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
             rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
             rspObj.errMsg = 'Error while sending event to kafka'
@@ -1695,6 +1725,7 @@ function publishContent(req, response){
         });
       },
       (error) => {
+        console.log(error)
         rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
         rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
         rspObj.responseCode = responseCode.SERVER_ERROR

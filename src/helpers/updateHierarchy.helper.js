@@ -44,10 +44,9 @@ class HierarchyService {
           }
         }
       };
-
+      console.log(option.data.request.data);
       return axios(option);
     });
-
     return forkJoin(...bulkRequest);
   }
 
