@@ -149,7 +149,7 @@ ALTER TYPE status ADD VALUE 'Unlisted';
 ALTER TYPE status ADD VALUE 'Retired';
 
 -- Sprint 12
-INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('contentVideoSize', 15000, 'active');
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('contentVideoSize', 15360, 'active');
 CREATE INDEX "idx_program_rootorgid_status" ON "public"."program" USING BTREE ("rootorg_id", "status");
 CREATE INDEX "pk_program_status_type" ON "public"."program" USING BTREE ("status", "type");
 CREATE INDEX "pk_program_updatedon" ON "public"."program" USING BTREE (updatedon DESC);
