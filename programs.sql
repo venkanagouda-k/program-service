@@ -157,3 +157,4 @@ CREATE INDEX "idx_nomination_updatedon" ON "public"."nomination" USING BTREE (up
 CREATE INDEX "idx_nomination_userid" ON "public"."nomination" (user_id);
 CREATE INDEX "idx_nomination_programid" ON "public"."nomination" USING BTREE (program_id);
 ALTER TABLE program ALTER COLUMN config TYPE jsonb USING config::jsonb;
+
