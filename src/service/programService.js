@@ -171,6 +171,72 @@ function updateProgram(req, response) {
   });
 }
 
+function publishProgram(req, response) {
+  var data = req.body
+  var rspObj = req.rspObj
+  if (!data.request || !data.request.program_id) {
+    rspObj.errCode = programMessages.PUBLISH.MISSING_CODE
+    rspObj.errMsg = programMessages.PUBLISH.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request program_id',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: {
+        data
+      }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+  const updateQuery = {
+    where: {
+      program_id: data.request.program_id
+    },
+    returning: true,
+    individualHooks: true,
+  };
+
+  const updateValue = {
+    status: "Live",
+    updatedon: new Date()
+
+  };
+
+  model.program.update(updateValue, updateQuery).then(resData => {
+    if (_.isArray(resData) && !resData[0]) {
+      console.log(resData)
+      return response.status(400).send(errorResponse({
+        apiId: 'api.program.publish',
+        ver: '1.0',
+        msgid: uuid(),
+        responseCode: 'ERR_PUBLISH_PROGRAM',
+        result: 'Program_id Not Found'
+      }));
+    }
+    return response.status(200).send(successResponse({
+      apiId: 'api.program.publish',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'OK',
+      result: {
+        'program_id': updateQuery.where.program_id
+      }
+    }));
+  }).catch(error => {
+    console.log(error)
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.publish',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_PUBLISH_PROGRAM',
+      result: error
+    }));
+  });
+}
+
 async function deleteProgram(req, response) {
   var data = req.body
   var rspObj = req.rspObj
@@ -1791,6 +1857,7 @@ function getParams(msgId, status, errCode, msg) {
 module.exports.getProgramAPI = getProgram
 module.exports.createProgramAPI = createProgram
 module.exports.updateProgramAPI = updateProgram
+module.exports.publishProgramAPI = publishProgram
 module.exports.deleteProgramAPI = deleteProgram
 module.exports.programListAPI = programList
 module.exports.addNominationAPI = addNomination

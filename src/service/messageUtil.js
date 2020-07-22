@@ -666,6 +666,12 @@ exports.PROGRAM = {
     FAILED_CODE: 'ERR_UPDATE_PROGRAM_DATA_FAILED',
     FAILED_MESSAGE: 'Unable to update the program data'
   },
+  PUBLISH: {
+    MISSING_CODE: 'ERR_PUBLISH_PROGRAM_DATA',
+    MISSING_MESSAGE: 'Required fields while publishing program data are missing',
+    FAILED_CODE: 'ERR_PUBLISH_PROGRAM_DATA_FAILED',
+    FAILED_MESSAGE: 'Unable to publish the program data'
+  },
   LINK: {
     MISSING_CODE: 'ERR_LINKING_PROGRAM_TEXTBOOK',
     MISSING_MESSAGE: 'Required fields while linking textbook to program are missing',
