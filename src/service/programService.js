@@ -27,6 +27,7 @@ var async = require('async')
 const queryRes_Max = 1000;
 const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
+const { isArray } = require("lodash");
 
 const programServiceHelper = new ProgramServiceHelper();
 const cacheManager = new SbCacheManager({ttl: envVariables.CACHE_TTL});
@@ -141,7 +142,6 @@ function updateProgram(req, response) {
   }
   model.program.update(updateValue, updateQuery).then(resData => {
     if (_.isArray(resData) && !resData[0]) {
-      console.log(resData)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.update',
         ver: '1.0',
@@ -172,8 +172,8 @@ function updateProgram(req, response) {
 }
 
 function publishProgram(req, response) {
-  var data = req.body
-  var rspObj = req.rspObj
+  var data = req.body;
+  var rspObj = req.rspObj;
   if (!data.request || !data.request.program_id) {
     rspObj.errCode = programMessages.PUBLISH.MISSING_CODE
     rspObj.errMsg = programMessages.PUBLISH.MISSING_MESSAGE
@@ -191,48 +191,77 @@ function publishProgram(req, response) {
     }, req)
     return response.status(400).send(errorResponse(rspObj))
   }
-  const updateQuery = {
-    where: {
-      program_id: data.request.program_id
-    },
-    returning: true,
-    individualHooks: true,
-  };
 
-  const updateValue = {
-    status: "Live",
-    updatedon: new Date()
+  model.program.findByPk(data.request.program_id)
+  .then(function (res) {
+    const cb = function(errObj, rspObj) {
+      if (!errObj && rspObj) {
+        const updateValue = {
+          status: "Live",
+          updatedon: new Date(),
+          copiedCollections: []
+        };
 
-  };
+        _.forEach(rspObj.result, (el, i) => {
+          if (el.responseCode === "OK") {
+            updateValue.copiedCollections.push(el.result.content_id);
+          }
+        });
 
-  model.program.update(updateValue, updateQuery).then(resData => {
-    if (_.isArray(resData) && !resData[0]) {
-      console.log(resData)
-      return response.status(400).send(errorResponse({
-        apiId: 'api.program.publish',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'ERR_PUBLISH_PROGRAM',
-        result: 'Program_id Not Found'
-      }));
-    }
-    return response.status(200).send(successResponse({
-      apiId: 'api.program.publish',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'OK',
-      result: {
-        'program_id': updateQuery.where.program_id
+        const updateQuery = {
+          where: {
+            program_id: data.request.program_id
+          },
+          returning: true,
+          individualHooks: true,
+        };
+
+        model.program.update(updateValue, updateQuery).then(resData => {
+          if (_.isArray(resData) && !resData[0]) {
+            return response.status(400).send(errorResponse({
+              apiId: 'api.program.publish',
+              ver: '1.0',
+              msgid: uuid(),
+              responseCode: 'ERR_PUBLISH_PROGRAM',
+              result: 'Program_id Not Found'
+            }));
+          }
+          return response.status(200).send(successResponse({
+            apiId: 'api.program.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'OK',
+            result: {
+              'program_id': updateQuery.where.program_id
+            }
+          }));
+        }).catch(error => {
+          console.log(error)
+          return response.status(400).send(errorResponse({
+            apiId: 'api.program.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'ERR_PUBLISH_PROGRAM',
+            result: error
+          }));
+        });
       }
-    }));
-  }).catch(error => {
-    console.log(error)
+      else {
+        loggerError(errObj.loggerMsg, errObj.errCode, errObj.errMsg, errObj.responseCode, null, req);
+        return response.status(400).send(errorResponse(errObj));
+      }
+    };
+
+    programServiceHelper.copyCollections(res, 'sunbird', req.headers, cb);
+  })
+  .catch(function (err) {
+    console.log(err)
     return response.status(400).send(errorResponse({
       apiId: 'api.program.publish',
       ver: '1.0',
       msgid: uuid(),
-      responseCode: 'ERR_PUBLISH_PROGRAM',
-      result: error
+      responseCode: 'ERR_READ_PROGRAM',
+      result: err
     }));
   });
 }
@@ -1046,7 +1075,6 @@ function getUsersDetails(req, userList) {
       }
     }
   }
-  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
@@ -1076,7 +1104,6 @@ function getOrgDetails(req, orgList) {
       }
     }
   }
-  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
@@ -1633,6 +1660,7 @@ async function programCopyCollections(req, response) {
     )
 }
 
+
 async function generateApprovedContentReport(req, res) {
   const data = req.body
   const rspObj = req.rspObj
@@ -1760,7 +1788,6 @@ function publishContent(req, response){
         if(!contentMetaData) {
           throw new Error("Fetching content metadata failed!");
         }
-        console.log(JSON.stringify(contentMetaData))
         return contentMetaData;
       }),
       catchError(err => {

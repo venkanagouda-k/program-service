@@ -5,6 +5,13 @@ const axios = require("axios");
 const dateFormat = require('dateformat');
 const model = require('../models');
 const Sequelize = require('sequelize');
+const messageUtils = require('../service/messageUtil');
+const responseCode = messageUtils.RESPONSE_CODE;
+const programMessages = messageUtils.PROGRAM;
+const logger = require('sb_logger_util_v2');
+const { retry } = require("rxjs/operators");
+const HierarchyService = require('./updateHierarchy.helper');
+const hierarchyService = new HierarchyService()
 
 class ProgramServiceHelper {
   searchContent(programId, sampleContentCheck, reqHeaders) {
@@ -45,7 +52,6 @@ class ProgramServiceHelper {
     return axios(option);
   }
 
-
   setNominationSampleCounts(contentResult) {
     let nominationSampleCounts = {};
     let orgSampleUploads = _.filter(contentResult, contribution => !_.isEmpty(contribution.organisationId) && contribution.sampleContent);
@@ -72,7 +78,6 @@ class ProgramServiceHelper {
     });
     return newNominations;
   }
-
 
   getNominationSampleCounts(nomination, nominationSampleCounts) {
     // tslint:disable-next-line:max-line-length
@@ -133,44 +138,44 @@ class ProgramServiceHelper {
        limit: 1000
      };
     return this.searchWithProgramId(queryFilter, req);
-}
+  }
 
-getSampleContentWithProgramId(program_id, req) {
-  const queryFilter = {
-        filters: {
-          programId: program_id,
-          objectType: 'content',
-          status: ['Review', 'Draft'],
-          sampleContent: true
-        },
-        facets: [
-          'sampleContent', 'collectionId', 'status'
-      ],
-      limit: 0
-      };
-    return this.searchWithProgramId(queryFilter, req);
-}
+  getSampleContentWithProgramId(program_id, req) {
+    const queryFilter = {
+          filters: {
+            programId: program_id,
+            objectType: 'content',
+            status: ['Review', 'Draft'],
+            sampleContent: true
+          },
+          facets: [
+            'sampleContent', 'collectionId', 'status'
+        ],
+        limit: 0
+        };
+      return this.searchWithProgramId(queryFilter, req);
+  }
 
-getContributionWithProgramId(program_id, req) {
-  const queryFilter = {
-        filters: {
-          programId: program_id,
-          objectType: 'content',
-          status: ['Review', 'Draft', 'Live'],
-          contentType: { '!=': 'Asset' },
-          mimeType: { '!=': 'application/vnd.ekstep.content-collection' }
-        },
-        not_exists: ['sampleContent'],
-        aggregations: [
-          {
-              "l1": "collectionId",
-              "l2": "status"
-          }
-      ],
-      limit: 0
-      };
-    return this.searchWithProgramId(queryFilter, req);
-}
+  getContributionWithProgramId(program_id, req) {
+    const queryFilter = {
+          filters: {
+            programId: program_id,
+            objectType: 'content',
+            status: ['Review', 'Draft', 'Live'],
+            contentType: { '!=': 'Asset' },
+            mimeType: { '!=': 'application/vnd.ekstep.content-collection' }
+          },
+          not_exists: ['sampleContent'],
+          aggregations: [
+            {
+                "l1": "collectionId",
+                "l2": "status"
+            }
+        ],
+        limit: 0
+        };
+      return this.searchWithProgramId(queryFilter, req);
+  }
 
   getNominationWithProgramId(programId) {
     const facets = ['collection_ids', 'status'];
@@ -450,6 +455,176 @@ getContributionWithProgramId(program_id, req) {
           reject('programServiceException: error in fetching contentTypes');
         });
       });
+  }
+
+  copyCollections(data, channel, reqHeaders, cb) {
+    const rspObj = {};
+    const errObj = {
+      'loggerMsg': null,
+      'errCode': null,
+      'errMsg': null,
+      'responseCode': null
+    };
+  
+    if (!data.program_id || !data.config.collections || !data.content_types || !channel) {
+      errObj.errCode = programMessages.COPY_COLLECTION.COPY.MISSING_CODE;
+      errObj.errMsg = programMessages.COPY_COLLECTION.COPY.MISSING_MESSAGE;
+      errObj.responseCode = responseCode.CLIENT_ERROR;
+      errObj.loggerMsg = 'Error due to missing request or program_id or request collections or request allowed_content_types or channel'
+      cb(errObj, null);
+      return false;
+    }
+  
+    const collections = _.get(data, 'config.collections');
+    const collectionIds = _.map(collections, 'id');
+    const additionalMetaData = {
+      programId: _.get(data, 'program_id'),
+      allowedContentTypes: _.get(data, 'content_types'),
+      channel: channel,
+      openForContribution: false
+    };
+    
+    hierarchyService.filterExistingTextbooks(collectionIds, reqHeaders)
+      .subscribe(
+        (resData) => {
+          const consolidatedResult = _.map(resData, r => {
+            return {
+              result: r.data.result,
+              config: r.config.data
+            }
+          })
+  
+          const existingTextbooks = hierarchyService.getExistingCollection(consolidatedResult);
+          const nonExistingTextbooks = hierarchyService.getNonExistingCollection(consolidatedResult)
+
+          if (existingTextbooks && existingTextbooks.length > 0) {
+            hierarchyService.getHierarchy(existingTextbooks, reqHeaders)
+              .subscribe(
+                (originHierarchyResult) => {
+                  const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                    return _.get(r, 'data')
+                  })
+                  const getCollectiveRequest = _.map(originHierarchyResultData, c => {
+                    let children = [];
+                    const cindex = collections.findIndex(r => r.id === c.hierarchy.content.identifier);
+  
+                    if (cindex !== -1) {
+                      children = collections[cindex].children;
+                    }
+  
+                    return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData, children);
+                  })
+                  hierarchyService.bulkUpdateHierarchy(getCollectiveRequest, reqHeaders)
+                    .subscribe(updateResult => {
+                      const updateResultData = _.map(updateResult, obj => {
+                        return obj.data
+                      })
+                      rspObj.result = updateResultData;
+                      rspObj.responseCode = 'OK' 
+                      cb(null, rspObj);
+                      return true;
+                    }, error => {
+                      errObj.errCode = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
+                      errObj.errMsg = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
+                      errObj.responseCode = responseCode.SERVER_ERROR
+                      console.log('Error updating hierarchy for collections', error)
+                      errObj.loggerMsg = 'Error updating hierarchy for collections';
+                      cb (errObj, null);
+                      return false;
+                    })
+                }, error => {
+                  errObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
+                  errObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
+                  errObj.responseCode = responseCode.SERVER_ERROR
+                  errObj.loggerMsg = 'Error fetching hierarchy for collections';
+                  console.log('Error fetching hierarchy for collections', error);
+                  cb (errObj, null);
+                  return false;
+                })
+          }
+
+          if (nonExistingTextbooks && nonExistingTextbooks.length > 0) {
+            hierarchyService.getHierarchy(nonExistingTextbooks, reqHeaders)
+              .subscribe(
+                (originHierarchyResult) => {
+                  const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                    return _.get(r, 'data')
+                  })
+  
+                  hierarchyService.createCollection(originHierarchyResultData, reqHeaders)
+                    .subscribe(createResponse => {
+                      const originHierarchy = _.map(originHierarchyResultData, 'result.content');
+  
+                      const createdCollections = _.map(createResponse, cr => {
+                        const mapOriginalHierarchy = {
+                          creationResult: cr.data,
+                          hierarchy: {
+                            ...JSON.parse(cr.config.data).request
+                          },
+                          originHierarchy: {
+                            content: _.find(originHierarchy, {
+                              identifier: cr.config.params.identifier
+                            })
+                          }
+                        }
+                        mapOriginalHierarchy.hierarchy.content.identifier = cr.config.params.identifier
+                        return mapOriginalHierarchy;
+                      })
+
+                      const getBulkUpdateRequest = _.map(createdCollections, item => {
+                        let children = [];
+                        const cindex = collections.findIndex(r => r.id === item.hierarchy.content.identifier);
+  
+                        if (cindex !== -1) {
+                          children = collections[cindex].children;
+                        }
+  
+                        return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData, children)
+                      })
+  
+                      hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest, reqHeaders)
+                        .subscribe(updateResult => {
+                          const updateResultData = _.map(updateResult, obj => {
+                            return obj.data
+                          })
+
+                          rspObj.result = updateResultData;
+                          rspObj.responseCode = 'OK';
+                          cb(null, rspObj);                          
+                        }, error => {
+                          errObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
+                          errObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
+                          errObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                          errObj.loggerMsg = 'Error updating hierarchy for collections';
+                          cb(errObj, null);
+                        })
+                    }, error => {
+                      errObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_CODE;
+                      errObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_MESSAGE;
+                      errObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                      errObj.loggerMsg = 'Error creating collection';
+                      cb(errObj, null);
+                    })
+                }, (error) => {
+                  errObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
+                  errObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
+                  errObj.responseCode = responseCode.SERVER_ERROR;
+                  errObj.loggerMsg = 'Error fetching hierarchy for collections';
+                  console.log('Error fetching hierarchy for collections', error);
+                  cb (errObj, null);
+                })
+          }
+        },
+        (error) => {
+          errObj.errCode = programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_CODE;
+          errObj.errMsg = error.message || programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_MESSAGE;
+          errObj.responseCode = _.get(error, 'response.statusText') || responseCode.SERVER_ERROR
+          errObj.loggerMsg = 'Error searching for collections';
+          console.log('Error searching for collections', error)
+          cb (errObj, null);
+          return false;
+        }
+      );
   }
 }
 
