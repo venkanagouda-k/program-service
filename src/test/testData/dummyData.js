@@ -77,3 +77,179 @@ exports.regUserSearch = {
       }
     }
 }
+
+exports.getCollectionWithProgramId = {
+        request: {
+            filters: {
+              programId: '',
+              objectType: 'content',
+              status: ['Draft'],
+              contentType: 'Textbook'
+            },
+            fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents'],
+            limit: 1000
+          }
+}
+
+exports.resultsGetCollectionWithProgramId = {
+    result: {
+        content: [
+            {
+                acceptedContents: ["do_11306389208843059216360", "do_11306389247965593616362", "do_11306390239684198416364"],
+                chapterCount: 2,
+                identifier: "do_11306389164045926416355",
+                medium: "Hindi",
+                name: "DP-30",
+                objectType: "Content",
+                rejectedContents: ["do_11306389286445875216363", "do_11306390274224947216366"],
+                subject: "Hindi"
+            }
+        ],
+        count: 1
+    }
+}
+
+exports.getSampleContentWithProgramId = {
+    request: {
+            filters: {
+            programId: '',
+            objectType: 'content',
+            status: ['Review', 'Draft'],
+            sampleContent: true
+            },
+            facets: [
+            'sampleContent', 'collectionId', 'status'
+        ],
+        limit: 0
+      }
+}
+
+exports.resultsGetSampleContentWithProgramId = {
+    result: {
+        count: 6,
+        facets: [
+            {
+                name: "sampleContent",
+                values: [{name: "true", count: 6}]
+            },
+            {
+                name: "collectionId",
+                values: [{name: "do_1130610285558169601677", count: 6}]
+            },
+            {
+                name: "status",
+                values: [
+                    {name: "review", count: 1},
+                    {name: "draft", count: 6}
+                ]
+            }
+        ]
+    }
+}
+
+exports.getContributionWithProgramId = {
+    request: {
+        filters: {
+          programId: '',
+          objectType: 'content',
+          status: ['Review', 'Draft', 'Live'],
+          contentType: { '!=': 'Asset' },
+          mimeType: { '!=': 'application/vnd.ekstep.content-collection' }
+        },
+        not_exists: ['sampleContent'],
+        aggregations: [
+          {
+              "l1": "collectionId",
+              "l2": "status"
+          }
+        ],
+      limit: 0
+      }
+}
+
+exports.resultGetContributionWithProgramId = {
+    result: {
+        aggregations: [
+            {
+                name: "collectionId",
+                values: [
+                    {
+                        aggregations: [
+                            {
+                                name: "status",
+                                values: [
+                                    {count: 5, name: "live"},
+                                    {count: 3, name: "draft"}
+                                ]
+                            }
+                        ],
+                        count: 8,
+                        name: "do_11306389164045926416355"
+                    }
+                ]
+            }
+        ],
+        count: 0
+    }
+}
+
+exports.searchSampleContents = {
+    request: {
+      filters: {
+        objectType: 'content',
+        programId: '',
+        mimeType: {'!=': 'application/vnd.ekstep.content-collection'},
+        contentType: {'!=': 'Asset'},
+        sampleContent: true,
+        status: ['Draft', 'Review']
+      },
+      fields: [
+              'name',
+              'identifier',
+              'programId',
+              'mimeType',
+              'status',
+              'sampleContent',
+              'createdBy',
+              'organisationId',
+              'collectionId',
+              'prevStatus',
+              'contentType'
+      ],
+      limit: 10000
+    }
+  }
+
+  exports.resultSearchSampleContents = {
+    responseCode: "OK",
+    result: {
+        count: 2,
+        content: [
+            {
+                identifier: "do_11306546343774617618150",
+                createdBy: "4fe5d899-dc3e-48de-b0b6-891e0922d371",
+                prevStatus: "Draft",
+                name: "Sample01",
+                mimeType: "video/mp4",
+                contentType: "LearningActivity",
+                sampleContent: true,
+                collectionId: "do_1130610285558169601677",
+                programId: "",
+                objectType: "Content",
+                status: "Review"
+            },
+            {
+                identifier: "do_11306596636010905618170",
+                createdBy: "4fe5d899-dc3e-48de-b0b6-891e0922d371",
+                name: "Untitled",
+                mimeType: "application/pdf",
+                contentType: "PedagogyFlow",
+                sampleContent: true,
+                collectionId: "do_1130610285558169601677",
+                programId: "",
+                objectType: "Content",
+                status: "Draft"
+            }
+        ]
+    }
+  }
