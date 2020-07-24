@@ -199,14 +199,15 @@ function publishProgram(req, response) {
         const updateValue = {
           status: "Live",
           updatedon: new Date(),
-          copiedCollections: []
+          // copiedCollections: []
         };
 
-        _.forEach(rspObj.result, (el, i) => {
-          if (el.responseCode === "OK") {
-            updateValue.copiedCollections.push(el.result.content_id);
-          }
-        });
+        // _.forEach(rspObj.result, (el, i) => {
+        //   if (el.responseCode === "OK") {
+        //     console.log(el.result.content_id);
+        //     // updateValue.copiedCollections.push(el.result.content_id);
+        //   }
+        // });
 
         const updateQuery = {
           where: {
