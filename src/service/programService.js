@@ -1669,7 +1669,7 @@ function publishContent(req, response){
   const reqHeaders = req.headers;
   var data = req.body;
   if (!data.request || !data.request.content_id || !data.request.origin ||
-    !data.request.origin.channel || !data.request.origin.textbook_id || !data.request.origin.units) {
+    !data.request.origin.channel || !data.request.origin.textbook_id || !data.request.origin.units || !data.request.origin.lastPublishedBy) {
     rspObj.errCode = programMessages.CONTENT_PUBLISH.MISSING_CODE
     rspObj.errMsg = programMessages.CONTENT_PUBLISH.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
