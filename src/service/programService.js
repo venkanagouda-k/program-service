@@ -1705,9 +1705,7 @@ function publishContent(req, response){
     .subscribe(
       (contentMetaData) => {
         contentMetaData.channel = _.get(data, 'request.origin.channel') || contentMetaData.channel;
-        if (_.get(contentMetaData, 'lastPublishedBy') && _.get(data, 'request.origin.lastPublishedBy')) {
-          contentMetaData.lastPublishedBy = _.get(data, 'request.origin.lastPublishedBy')
-        }
+        contentMetaData.lastPublishedBy = _.get(data, 'request.origin.lastPublishedBy') || contentMetaData.lastPublishedBy;
         var units = _.isArray(data.request.origin.units) ? data.request.origin.units : [data.request.origin.units];
         const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.origin.textbook_id, units);
         KafkaService.sendRecord(eventData, function (err, res) {
