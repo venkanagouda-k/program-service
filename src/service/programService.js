@@ -1762,7 +1762,7 @@ function publishContent(req, response){
   const reqHeaders = req.headers;
   var data = req.body;
   if (!data.request || !data.request.content_id || !data.request.origin ||
-    !data.request.origin.channel || !data.request.origin.textbook_id || !data.request.origin.units) {
+    !data.request.origin.channel || !data.request.origin.textbook_id || !data.request.origin.units || !data.request.origin.lastPublishedBy) {
     rspObj.errCode = programMessages.CONTENT_PUBLISH.MISSING_CODE
     rspObj.errMsg = programMessages.CONTENT_PUBLISH.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
@@ -1797,6 +1797,7 @@ function publishContent(req, response){
     .subscribe(
       (contentMetaData) => {
         contentMetaData.channel = _.get(data, 'request.origin.channel') || contentMetaData.channel;
+        contentMetaData.lastPublishedBy = _.get(data, 'request.origin.lastPublishedBy') || contentMetaData.lastPublishedBy;
         var units = _.isArray(data.request.origin.units) ? data.request.origin.units : [data.request.origin.units];
         const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.origin.textbook_id, units);
         KafkaService.sendRecord(eventData, function (err, res) {
