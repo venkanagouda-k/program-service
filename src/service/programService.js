@@ -27,6 +27,7 @@ var async = require('async')
 const queryRes_Max = 1000;
 const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
+const { constant } = require("lodash");
 const programServiceHelper = new ProgramServiceHelper();
 const cacheManager = new SbCacheManager({ttl: envVariables.CACHE_TTL});
 const cacheManager_programReport = new SbCacheManager({ttl: 86400});
@@ -197,15 +198,15 @@ function publishProgram(req, response) {
         const updateValue = {
           status: "Live",
           updatedon: new Date(),
-          // copiedCollections: []
+          collection_ids: []
         };
 
-        // _.forEach(rspObj.result, (el, i) => {
-        //   if (el.responseCode === "OK") {
-        //     console.log(el.result.content_id);
-        //     // updateValue.copiedCollections.push(el.result.content_id);
-        //   }
-        // });
+       const collections = _.get(res, 'config.collections');
+       if (collections) {
+        _.forEach(collections, el => {
+          updateValue.collection_ids.push(el.id);
+        });
+       }
 
         const updateQuery = {
           where: {
@@ -251,7 +252,102 @@ function publishProgram(req, response) {
       }
     };
 
-    console.log("cccc ", data.request.channel);
+    programServiceHelper.copyCollections(res, data.request.channel, req.headers, cb);
+  })
+  .catch(function (err) {
+    // console.log(err)
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.publish',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_READ_PROGRAM',
+      result: err
+    }));
+  });
+}
+
+function unlistPublishProgram(req, response) {
+  var data = req.body;
+  var rspObj = req.rspObj;
+  if (!data.request || !data.request.program_id || !data.request.channel) {
+    rspObj.errCode = programMessages.PUBLISH.MISSING_CODE
+    rspObj.errMsg = programMessages.PUBLISH.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request program_id or channel',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: {
+        data
+      }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+
+  model.program.findByPk(data.request.program_id)
+  .then(function (res) {
+    const cb = function(errObj, rspObj) {
+      if (!errObj && rspObj) {
+        const updateValue = {
+          status: "Unlisted",
+          updatedon: new Date(),
+          collection_ids: []
+        };
+
+       const collections = _.get(res, 'config.collections');
+       if (collections) {
+        _.forEach(collections, el => {
+          updateValue.collection_ids.push(el.id);
+        });
+       }
+
+        const updateQuery = {
+          where: {
+            program_id: data.request.program_id
+          },
+          returning: true,
+          individualHooks: true,
+        };
+
+        model.program.update(updateValue, updateQuery).then(resData => {
+          if (_.isArray(resData) && !resData[0]) {
+            return response.status(400).send(errorResponse({
+              apiId: 'api.program.unlist.publish',
+              ver: '1.0',
+              msgid: uuid(),
+              responseCode: 'ERR_PUBLISH_PROGRAM',
+              result: 'Program_id Not Found'
+            }));
+          }
+          return response.status(200).send(successResponse({
+            apiId: 'api.program.unlist.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'OK',
+            result: {
+              'program_id': updateQuery.where.program_id
+            }
+          }));
+        }).catch(error => {
+          // console.log(error)
+          return response.status(400).send(errorResponse({
+            apiId: 'api.program.unlist.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'ERR_PUBLISH_PROGRAM',
+            result: error
+          }));
+        });
+      }
+      else {
+        loggerError(errObj.loggerMsg, errObj.errCode, errObj.errMsg, errObj.responseCode, null, req);
+        return response.status(400).send(errorResponse(errObj));
+      }
+    };
+
     programServiceHelper.copyCollections(res, data.request.channel, req.headers, cb);
   })
   .catch(function (err) {
@@ -1885,6 +1981,7 @@ module.exports.getProgramAPI = getProgram
 module.exports.createProgramAPI = createProgram
 module.exports.updateProgramAPI = updateProgram
 module.exports.publishProgramAPI = publishProgram
+module.exports.unlistPublishProgramAPI = unlistPublishProgram
 module.exports.deleteProgramAPI = deleteProgram
 module.exports.programListAPI = programList
 module.exports.addNominationAPI = addNomination
