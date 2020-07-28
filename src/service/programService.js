@@ -27,8 +27,6 @@ var async = require('async')
 const queryRes_Max = 1000;
 const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
-const { isArray } = require("lodash");
-
 const programServiceHelper = new ProgramServiceHelper();
 const cacheManager = new SbCacheManager({ttl: envVariables.CACHE_TTL});
 const cacheManager_programReport = new SbCacheManager({ttl: 86400});
