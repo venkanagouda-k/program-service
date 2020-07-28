@@ -45,7 +45,7 @@ function getProgram(req, response) {
       }))
     })
     .catch(function (err) {
-      console.log(err)
+      // console.log(err)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.read',
         ver: '1.0',
@@ -84,7 +84,7 @@ async function createProgram(req, response) {
   }
 
   model.program.create(insertObj).then(sc => {
-    console.log("Program successfully written to DB", sc);
+    // console.log("Program successfully written to DB", sc);
     return response.status(200).send(successResponse({
       apiId: 'api.program.create',
       ver: '1.0',
@@ -95,8 +95,8 @@ async function createProgram(req, response) {
       }
     }));
   }).catch(err => {
-    console.log(err)
-    console.log("Error adding Program to db", err);
+    // console.log(err)
+    // console.log("Error adding Program to db", err);
     return response.status(400).send(errorResponse({
       apiId: 'api.program.create',
       ver: '1.0',
@@ -158,7 +158,7 @@ function updateProgram(req, response) {
       }
     }));
   }).catch(error => {
-    console.log(error)
+    // console.log(error)
     return response.status(400).send(errorResponse({
       apiId: 'api.program.update',
       ver: '1.0',
@@ -172,12 +172,12 @@ function updateProgram(req, response) {
 function publishProgram(req, response) {
   var data = req.body;
   var rspObj = req.rspObj;
-  if (!data.request || !data.request.program_id) {
+  if (!data.request || !data.request.program_id || !data.request.channel) {
     rspObj.errCode = programMessages.PUBLISH.MISSING_CODE
     rspObj.errMsg = programMessages.PUBLISH.MISSING_MESSAGE
     rspObj.responseCode = responseCode.CLIENT_ERROR
     logger.error({
-      msg: 'Error due to missing request or request program_id',
+      msg: 'Error due to missing request or request program_id or channel',
       err: {
         errCode: rspObj.errCode,
         errMsg: rspObj.errMsg,
@@ -235,7 +235,7 @@ function publishProgram(req, response) {
             }
           }));
         }).catch(error => {
-          console.log(error)
+          // console.log(error)
           return response.status(400).send(errorResponse({
             apiId: 'api.program.publish',
             ver: '1.0',
@@ -251,10 +251,11 @@ function publishProgram(req, response) {
       }
     };
 
-    programServiceHelper.copyCollections(res, 'sunbird', req.headers, cb);
+    console.log("cccc ", data.request.channel);
+    programServiceHelper.copyCollections(res, data.request.channel, req.headers, cb);
   })
   .catch(function (err) {
-    console.log(err)
+    // console.log(err)
     return response.status(400).send(errorResponse({
       apiId: 'api.program.publish',
       ver: '1.0',
@@ -1580,7 +1581,6 @@ async function programCopyCollections(req, response) {
             .subscribe(
               (originHierarchyResult) => {
                 const originHierarchyResultData = _.map(originHierarchyResult, r => {
-                  console.log(_.get(r, 'data.result.content'));
                   return _.get(r, 'data')
                 })
 
@@ -1790,7 +1790,7 @@ function publishContent(req, response){
         return contentMetaData;
       }),
       catchError(err => {
-        console.log(err)
+        // console.log(err)
         throw err;
       })
     )
@@ -1801,7 +1801,7 @@ function publishContent(req, response){
         const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.origin.textbook_id, units);
         KafkaService.sendRecord(eventData, function (err, res) {
           if (err) {
-            console.log(err)
+            // console.log(err)
             logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
             rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
             rspObj.errMsg = 'Error while sending event to kafka'
@@ -1817,7 +1817,7 @@ function publishContent(req, response){
         });
       },
       (error) => {
-        console.log(error)
+        // console.log(error)
         rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
         rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
         rspObj.responseCode = responseCode.SERVER_ERROR
