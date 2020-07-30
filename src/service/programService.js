@@ -27,7 +27,7 @@ var async = require('async')
 const queryRes_Max = 1000;
 const queryRes_Min = 300;
 const HierarchyService = require('../helpers/updateHierarchy.helper');
-
+const { constant } = require("lodash");
 const programServiceHelper = new ProgramServiceHelper();
 const cacheManager = new SbCacheManager({ttl: envVariables.CACHE_TTL});
 const cacheManager_programReport = new SbCacheManager({ttl: 86400});
@@ -46,7 +46,7 @@ function getProgram(req, response) {
       }))
     })
     .catch(function (err) {
-      console.log(err)
+      // console.log(err)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.read',
         ver: '1.0',
@@ -85,7 +85,7 @@ async function createProgram(req, response) {
   }
 
   model.program.create(insertObj).then(sc => {
-    console.log("Program successfully written to DB", sc);
+    // console.log("Program successfully written to DB", sc);
     return response.status(200).send(successResponse({
       apiId: 'api.program.create',
       ver: '1.0',
@@ -96,8 +96,8 @@ async function createProgram(req, response) {
       }
     }));
   }).catch(err => {
-    console.log(err)
-    console.log("Error adding Program to db", err);
+    // console.log(err)
+    // console.log("Error adding Program to db", err);
     return response.status(400).send(errorResponse({
       apiId: 'api.program.create',
       ver: '1.0',
@@ -141,7 +141,6 @@ function updateProgram(req, response) {
   }
   model.program.update(updateValue, updateQuery).then(resData => {
     if (_.isArray(resData) && !resData[0]) {
-      console.log(resData)
       return response.status(400).send(errorResponse({
         apiId: 'api.program.update',
         ver: '1.0',
@@ -160,13 +159,205 @@ function updateProgram(req, response) {
       }
     }));
   }).catch(error => {
-    console.log(error)
+    // console.log(error)
     return response.status(400).send(errorResponse({
       apiId: 'api.program.update',
       ver: '1.0',
       msgid: uuid(),
       responseCode: 'ERR_UPDATE_PROGRAM',
       result: error
+    }));
+  });
+}
+
+function publishProgram(req, response) {
+  var data = req.body;
+  var rspObj = req.rspObj;
+  if (!data.request || !data.request.program_id || !data.request.channel) {
+    rspObj.errCode = programMessages.PUBLISH.MISSING_CODE
+    rspObj.errMsg = programMessages.PUBLISH.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request program_id or channel',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: {
+        data
+      }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+
+  model.program.findByPk(data.request.program_id)
+  .then(function (res) {
+    const cb = function(errObj, rspObj) {
+      if (!errObj && rspObj) {
+        const updateValue = {
+          status: "Live",
+          updatedon: new Date(),
+          collection_ids: []
+        };
+
+       const collections = _.get(res, 'config.collections');
+       if (collections) {
+        _.forEach(collections, el => {
+          updateValue.collection_ids.push(el.id);
+        });
+       }
+
+        const updateQuery = {
+          where: {
+            program_id: data.request.program_id
+          },
+          returning: true,
+          individualHooks: true,
+        };
+
+        model.program.update(updateValue, updateQuery).then(resData => {
+          if (_.isArray(resData) && !resData[0]) {
+            return response.status(400).send(errorResponse({
+              apiId: 'api.program.publish',
+              ver: '1.0',
+              msgid: uuid(),
+              responseCode: 'ERR_PUBLISH_PROGRAM',
+              result: 'Program_id Not Found'
+            }));
+          }
+          return response.status(200).send(successResponse({
+            apiId: 'api.program.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'OK',
+            result: {
+              'program_id': updateQuery.where.program_id
+            }
+          }));
+        }).catch(error => {
+          // console.log(error)
+          return response.status(400).send(errorResponse({
+            apiId: 'api.program.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'ERR_PUBLISH_PROGRAM',
+            result: error
+          }));
+        });
+      }
+      else {
+        loggerError(errObj.loggerMsg, errObj.errCode, errObj.errMsg, errObj.responseCode, null, req);
+        return response.status(400).send(errorResponse(errObj));
+      }
+    };
+
+    programServiceHelper.copyCollections(res, data.request.channel, req.headers, cb);
+  })
+  .catch(function (err) {
+    // console.log(err)
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.publish',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_READ_PROGRAM',
+      result: err
+    }));
+  });
+}
+
+function unlistPublishProgram(req, response) {
+  var data = req.body;
+  var rspObj = req.rspObj;
+  if (!data.request || !data.request.program_id || !data.request.channel) {
+    rspObj.errCode = programMessages.PUBLISH.MISSING_CODE
+    rspObj.errMsg = programMessages.PUBLISH.MISSING_MESSAGE
+    rspObj.responseCode = responseCode.CLIENT_ERROR
+    logger.error({
+      msg: 'Error due to missing request or request program_id or channel',
+      err: {
+        errCode: rspObj.errCode,
+        errMsg: rspObj.errMsg,
+        responseCode: rspObj.responseCode
+      },
+      additionalInfo: {
+        data
+      }
+    }, req)
+    return response.status(400).send(errorResponse(rspObj))
+  }
+
+  model.program.findByPk(data.request.program_id)
+  .then(function (res) {
+    const cb = function(errObj, rspObj) {
+      if (!errObj && rspObj) {
+        const updateValue = {
+          status: "Unlisted",
+          updatedon: new Date(),
+          collection_ids: []
+        };
+
+       const collections = _.get(res, 'config.collections');
+       if (collections) {
+        _.forEach(collections, el => {
+          updateValue.collection_ids.push(el.id);
+        });
+       }
+
+        const updateQuery = {
+          where: {
+            program_id: data.request.program_id
+          },
+          returning: true,
+          individualHooks: true,
+        };
+
+        model.program.update(updateValue, updateQuery).then(resData => {
+          if (_.isArray(resData) && !resData[0]) {
+            return response.status(400).send(errorResponse({
+              apiId: 'api.program.unlist.publish',
+              ver: '1.0',
+              msgid: uuid(),
+              responseCode: 'ERR_PUBLISH_PROGRAM',
+              result: 'Program_id Not Found'
+            }));
+          }
+          return response.status(200).send(successResponse({
+            apiId: 'api.program.unlist.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'OK',
+            result: {
+              'program_id': updateQuery.where.program_id
+            }
+          }));
+        }).catch(error => {
+          // console.log(error)
+          return response.status(400).send(errorResponse({
+            apiId: 'api.program.unlist.publish',
+            ver: '1.0',
+            msgid: uuid(),
+            responseCode: 'ERR_PUBLISH_PROGRAM',
+            result: error
+          }));
+        });
+      }
+      else {
+        loggerError(errObj.loggerMsg, errObj.errCode, errObj.errMsg, errObj.responseCode, null, req);
+        return response.status(400).send(errorResponse(errObj));
+      }
+    };
+
+    programServiceHelper.copyCollections(res, data.request.channel, req.headers, cb);
+  })
+  .catch(function (err) {
+    // console.log(err)
+    return response.status(400).send(errorResponse({
+      apiId: 'api.program.publish',
+      ver: '1.0',
+      msgid: uuid(),
+      responseCode: 'ERR_READ_PROGRAM',
+      result: err
     }));
   });
 }
@@ -980,7 +1171,6 @@ function getUsersDetails(req, userList) {
       }
     }
   }
-  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
@@ -1010,7 +1200,6 @@ function getOrgDetails(req, orgList) {
       }
     }
   }
-  console.log(reqData)
   return axios({
     method: 'post',
     url: url,
@@ -1488,7 +1677,6 @@ async function programCopyCollections(req, response) {
             .subscribe(
               (originHierarchyResult) => {
                 const originHierarchyResultData = _.map(originHierarchyResult, r => {
-                  console.log(_.get(r, 'data.result.content'));
                   return _.get(r, 'data')
                 })
 
@@ -1566,6 +1754,7 @@ async function programCopyCollections(req, response) {
       }
     )
 }
+
 
 async function generateApprovedContentReport(req, res) {
   const data = req.body
@@ -1694,11 +1883,10 @@ function publishContent(req, response){
         if(!contentMetaData) {
           throw new Error("Fetching content metadata failed!");
         }
-        console.log(JSON.stringify(contentMetaData))
         return contentMetaData;
       }),
       catchError(err => {
-        console.log(err)
+        // console.log(err)
         throw err;
       })
     )
@@ -1710,7 +1898,7 @@ function publishContent(req, response){
         const eventData = publishHelper.getPublishContentEvent(contentMetaData, data.request.origin.textbook_id, units);
         KafkaService.sendRecord(eventData, function (err, res) {
           if (err) {
-            console.log(err)
+            // console.log(err)
             logger.error({ msg: 'Error while sending event to kafka', err, additionalInfo: { eventData } })
             rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
             rspObj.errMsg = 'Error while sending event to kafka'
@@ -1726,7 +1914,7 @@ function publishContent(req, response){
         });
       },
       (error) => {
-        console.log(error)
+        // console.log(error)
         rspObj.errCode = programMessages.CONTENT_PUBLISH.FAILED_CODE
         rspObj.errMsg = programMessages.CONTENT_PUBLISH.FAILED_MESSAGE
         rspObj.responseCode = responseCode.SERVER_ERROR
@@ -1792,6 +1980,8 @@ function getParams(msgId, status, errCode, msg) {
 module.exports.getProgramAPI = getProgram
 module.exports.createProgramAPI = createProgram
 module.exports.updateProgramAPI = updateProgram
+module.exports.publishProgramAPI = publishProgram
+module.exports.unlistPublishProgramAPI = unlistPublishProgram
 module.exports.deleteProgramAPI = deleteProgram
 module.exports.programListAPI = programList
 module.exports.addNominationAPI = addNomination
