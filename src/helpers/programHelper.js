@@ -459,12 +459,6 @@ class ProgramServiceHelper {
 
   copyCollections(data, channel, reqHeaders, cb) {
     const rspObj = {};
-    rspObj.result = [{ "id": "api.content.hierarchy.update", "ver": "3.0", "ts": "2020-07-30T15:17:01ZZ", "params": { "resmsgid": "766a1193-c71e-472c-a619-8346fc95f1db", "msgid": null, "err": null, "status": "successful", "errmsg": null }, "responseCode": "OK", "result": { "content_id": "do_11307543324033024016929", "identifiers": { "do_113035576410906624135": "do_11307543324080537616930" } } }];
-    rspObj.responseCode = 'OK';
-    cb(null, rspObj)
-  }
-  copyCollections12(data, channel, reqHeaders, cb) {
-    const rspObj = {};
     const errObj = {
       'loggerMsg': null,
       'errCode': null,
