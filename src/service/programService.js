@@ -195,6 +195,12 @@ function publishProgram(req, response) {
   .then(function (res) {
     const cb = function(errObj, rspObj) {
       if (!errObj && rspObj) {
+        res.copiedCollections = [];
+        if (rspObj && rspObj.result) {
+          res.copiedCollections = _.map(rspObj.result, (collection) => {
+          return collection.result.content_id;
+          });
+        }
         const updateValue = {
           status: "Live",
           updatedon: new Date(),
@@ -235,7 +241,8 @@ function publishProgram(req, response) {
               'program_id': updateQuery.where.program_id
             }
           }));
-        }).catch(error => {
+        }).then(onAfterPublishProgram(res,req))
+        .catch(error => {
           // console.log(error)
           return response.status(400).send(errorResponse({
             apiId: 'api.program.publish',
@@ -291,6 +298,12 @@ function unlistPublishProgram(req, response) {
   .then(function (res) {
     const cb = function(errObj, rspObj) {
       if (!errObj && rspObj) {
+        res.copiedCollections = [];
+          if (rspObj && rspObj.result) {
+           res.copiedCollections = _.map(rspObj.result, (collection) => {
+            return collection.result.content_id;
+           });
+        }
         const updateValue = {
           status: "Unlisted",
           updatedon: new Date(),
@@ -331,7 +344,8 @@ function unlistPublishProgram(req, response) {
               'program_id': updateQuery.where.program_id
             }
           }));
-        }).catch(error => {
+        }).then(onAfterPublishProgram(res,req))
+        .catch(error => {
           // console.log(error)
           return response.status(400).send(errorResponse({
             apiId: 'api.program.unlist.publish',
@@ -359,6 +373,280 @@ function unlistPublishProgram(req, response) {
       responseCode: 'ERR_READ_PROGRAM',
       result: err
     }));
+  });
+}
+
+function onAfterPublishProgram(programDetails, req) {
+  /*const regMethodCallback = function (errObj, rspObj){
+
+  }
+  const userProfile = {
+    firstName: "newTest1",
+    lastName: "newTest1 done" || '',
+    identifier: "ab123456",
+    enrolledDate: new Date().toISOString(),
+    channel: "ab1channel1",
+    rootOrgName: "ab1root1"
+  }
+  createUserOrgMappingInRegistry(userProfile, regMethodCallback);
+  return true;*/
+  const regMethodCallback = function (errObj, rspObj){
+    if (!errObj && rspObj) {
+      addOrUpdateNomination(programDetails, rspObj.result)
+    }
+  }
+
+  getUserRegistryDetails(programDetails.createdby).then((userRegRes) => {
+    if (!userRegRes.error) {
+      const userRegData = {};
+      userRegData['User'] = {};
+      userRegData['Org'] = {};
+      userRegData['User_Org'] = {};
+      if (_.get(userRegRes, 'res.osid')) {
+        userRegData['User'] = userRegRes.res;
+      }
+      if (!_.isEmpty(_.get(userRegRes.res, 'orgs'))) {
+        _.forEach(userRegRes.res.orgs, org => {
+          if (_.includes(org.roles, 'admin')) {
+            userRegData.Org.osid = org.osid;
+            userRegData.User_Org.orgId = org.osid;
+            return false;
+          }
+        });
+      }
+
+      if (!_.get(userRegData, 'User.osid') || !_.get(userRegData, 'User_Org.orgId')){
+          // create a registry for the user adn then an org and create mapping for the org as a admin
+          programServiceHelper.getUserDetails(programDetails.createdby, req.headers)
+          .subscribe((res)=>{
+            if (res.data.responseCode == "OK" && !_.isEmpty(res.data.result.response)) {
+              if (!_.get(userRegData, 'User.osid')) {
+                createUserOrgMappingInRegistry(res.data.result.response, regMethodCallback);
+              } else if (!_.get(userRegData, 'User_Org.orgId')) {
+                createOrgMappingInRegistry(res.data.result.response, userRegData, regMethodCallback);
+              }
+            }
+          },(error)=> {
+            console.log(error);
+          });
+      } else {
+        addOrUpdateNomination(programDetails, userRegData)
+      }
+    }
+  });
+}
+
+function createUserOrgMappingInRegistry(userProfile, regMethodCallback) {
+  const rspObj = {};
+  rspObj.result = {};
+  rspObj.error = {};
+  rspObj.responseCode = 'OK';
+
+  let regReq = {
+    body: {
+      id: "open-saber.registry.create",
+      request: {
+        User: {
+          firstName: userProfile.firstName,
+          lastName: userProfile.lastName || '',
+          userId: userProfile.identifier,
+          enrolledDate: new Date().toISOString(),
+          channel: userProfile.rootOrgId
+        }
+      }
+    }
+  }
+  registryService.addRecord(regReq, (userErr, userRes) => {
+    if (userRes && userRes.status == 200 && _.get(userRes.data, 'result') && _.get(userRes.data, 'result.User.osid')) {
+          rspObj.result['User'] = userRes.data.result.User;
+          const orgName = userProfile.rootOrgName;
+          regReq.body.request = {
+              Org: {
+                name: orgName,
+                code: orgName.toUpperCase(),
+                createdBy: rspObj.result.User.osid,
+                description: orgName,
+                type: ["contribute", "sourcing"],
+                orgId: userProfile.rootOrgId,
+              }
+            };
+            registryService.addRecord(regReq, (orgErr, orgRes) => {
+              if (orgRes && orgRes.status == 200 && _.get(orgRes.data, 'result') && _.get(orgRes.data, 'result.Org.osid')) {
+                  rspObj.result['Org'] = orgRes.data.result.Org;
+                  regReq.body.request = {
+                    User_Org: {
+                      userId: rspObj.result.User.osid,
+                      orgId: rspObj.result.Org.osid,
+                      roles: ['admin']
+                    }
+                  };
+
+                  registryService.addRecord(regReq, (userOrgErr, userOrgRes) => {
+                    if (userOrgRes && userOrgRes.status == 200 && _.get(userOrgRes.data, 'result') && _.get(userOrgRes.data, 'result.User_Org.osid')) {
+                        rspObj.result['User_Org'] = userOrgRes.data.result.User_Org;
+                        regMethodCallback(null, rspObj);
+                    } else {
+                      rspObj.error = userOrgErr;
+                      regMethodCallback(true, rspObj);
+                      logger.error("Encountered some error while searching data")
+                    }
+                  });
+              }else {
+                rspObj.error = orgErr;
+                regMethodCallback(true, rspObj);
+                logger.error("Encountered some error while searching data")
+              }
+            });
+    } else {
+      rspObj.error = userErr;
+      regMethodCallback(true, rspObj);
+      logger.error("Encountered some error while searching data")
+    }
+  });
+}
+
+function createOrgMappingInRegistry(userProfile, userReg, regMethodCallback) {
+  const rspObj = {};
+  rspObj.error = {};
+  rspObj.result = userReg;
+  rspObj.responseCode = 'OK';
+  const orgName = userProfile.rootOrgName;
+  let regReq = {
+    body: {
+      id: "open-saber.registry.create",
+      request: {
+        Org: {
+          name: orgName,
+          code: orgName.toUpperCase(),
+          createdBy: rspObj.result.User.osid,
+          description: orgName,
+          type: ["contribute", "sourcing"],
+          orgId: userProfile.rootOrgId,
+        }
+      }
+    }
+  }
+  registryService.addRecord(regReq, (orgErr, orgRes) => {
+    if (orgRes && orgRes.status == 200 && _.get(orgRes.data, 'result') && _.get(orgRes.data, 'result.Org.osid')) {
+        rspObj.result['Org'] = orgRes.data.result.Org;
+        regReq.body.request = {
+          User_Org: {
+            userId: rspObj.result.User.osid,
+            orgId: rspObj.result.Org.osid,
+            roles: ['admin']
+          }
+        };
+
+        registryService.addRecord(regReq, (userOrgErr, userOrgRes) => {
+          if (userOrgRes && userOrgRes.status == 200 && _.get(userOrgRes.data, 'result') && _.get(userOrgRes.data, 'result.User_Org.osid')) {
+              rspObj.result['User_Org'] = userOrgRes.data.result.User_Org;
+              regMethodCallback(null, rspObj);
+          } else {
+            rspObj.error = userOrgErr;
+            regMethodCallback(true, rspObj);
+            logger.error("Encountered some error while searching data")
+          }
+        });
+    }else {
+      rspObj.error = orgErr;
+      regMethodCallback(true, rspObj);
+      logger.error("Encountered some error while searching data")
+    }
+  });
+}
+
+function addOrUpdateNomination(programDetails, userReg) {
+
+  if (!_.isEmpty(_.get(userReg,'Org.osid'))) {
+    const insertObj = {
+      program_id: programDetails.program_id,
+      user_id: _.get(userReg,'User.userId'),
+      organisation_id: _.get(userReg,'Org.osid'),
+      status: 'Approved',
+      content_types: programDetails.content_types,
+      collection_ids: programDetails.copiedCollections,
+    };
+
+    let findNomWhere =  {
+      program_id: programDetails.program_id,
+      organisation_id: _.get(userReg,'Org.osid')
+    }
+    return model.nomination.findOne({
+      where: findNomWhere
+    }).then((res) => {
+        if (res && res.dataValues.id) {
+          const updateValue = {
+            status: 'Approved',
+            content_types: programDetails.content_types,
+            collection_ids: programDetails.copiedCollections,
+            updatedon: new Date(),
+          };
+
+          const updateQuery = {
+            where: findNomWhere,
+            returning: true,
+            individualHooks: true,
+          };
+
+          model.nomination.update(updateValue, updateQuery).then(resData => {
+            if (_.isArray(resData) && !resData[0]) {
+              logger.error({ msg: 'Nomination update failed',additionalInfo: { nomDetails: insertObj } }, {})
+            } else {
+              logger.debug({ msg: 'Nomination updated successfully', additionalInfo: { nomDetails: insertObj } }, {})
+            }
+          }).catch(error => {
+              // console.log(error)
+              logger.error({ msg: 'Nomination update failed', error, additionalInfo: { nomDetails: insertObj } }, {})
+            });
+        } else {
+          model.nomination.create(insertObj).then(res => {
+            console.log("nomination successfully written to DB", res);
+          }).catch(err => {
+            console.log("Error adding nomination to db", err);
+          });
+        }
+    });
+  }
+}
+
+function getUserRegistryDetails(userId) {
+  return new Promise((resolve, reject) => {
+    const retObj = { error: false, res: {} };
+    async.waterfall([
+      function (callback1) {
+        getUserDetailsFromRegistry(userId, callback1)
+      },
+      function (user, callback2) {
+        if (!user || !_.get(user, 'osid')) {
+          callback2(null, {}, {})
+        } else {
+          getUserOrgMappingDetailFromRegistry(user, callback2);
+        }
+      },
+      function (user, userOrgMapDetails, callback3) {
+        if (_.isEmpty(userOrgMapDetails)) {
+          callback3(null, user, {}, {})
+        } else {
+          getOrgDetailsFromRegistry(user, userOrgMapDetails, callback3)
+        }
+      },
+      function (user, userOrgMapDetails, orgInfoLists, callback4) {
+        if (_.isEmpty(orgInfoLists)) {
+          callback4(null, user)
+        } else {
+          createUserRecords(user, userOrgMapDetails, orgInfoLists, callback4)
+        }
+      }
+    ], function (err, res) {
+      if (err) {
+        logger.error({ msg: 'Error fetching opensaberprofile for user', err, additionalInfo: { user: userId } }, {});
+        retObj.error = true;
+        return reject(retObj);
+      } else {
+        retObj.res = res;
+        return resolve(retObj);
+      }
+    });
   });
 }
 
@@ -1324,7 +1612,7 @@ function getUserOrgMappingDetailFromRegistry(user, callback) {
 
 function getOrgDetailsFromRegistry(user, userOrgMapDetails, callback) {
 
-  const orgList = userOrgMapDetails.map((value) => value.orgId.slice(2))
+  const orgList = userOrgMapDetails.map((value) => value.orgId)
 
   let orgDetailsReq = {
     body: {

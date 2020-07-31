@@ -459,13 +459,19 @@ class ProgramServiceHelper {
 
   copyCollections(data, channel, reqHeaders, cb) {
     const rspObj = {};
+    rspObj.result = [{ "id": "api.content.hierarchy.update", "ver": "3.0", "ts": "2020-07-30T15:17:01ZZ", "params": { "resmsgid": "766a1193-c71e-472c-a619-8346fc95f1db", "msgid": null, "err": null, "status": "successful", "errmsg": null }, "responseCode": "OK", "result": { "content_id": "do_11307543324033024016929", "identifiers": { "do_113035576410906624135": "do_11307543324080537616930" } } }];
+    rspObj.responseCode = 'OK';
+    cb(null, rspObj)
+  }
+  copyCollections12(data, channel, reqHeaders, cb) {
+    const rspObj = {};
     const errObj = {
       'loggerMsg': null,
       'errCode': null,
       'errMsg': null,
       'responseCode': null
     };
-  
+
     if (!data.program_id || !data.config.collections || !data.content_types || !channel) {
       errObj.errCode = programMessages.COPY_COLLECTION.COPY.MISSING_CODE;
       errObj.errMsg = programMessages.COPY_COLLECTION.COPY.MISSING_MESSAGE;
@@ -474,7 +480,7 @@ class ProgramServiceHelper {
       cb(errObj, null);
       return false;
     }
-  
+
     const collections = _.get(data, 'config.collections');
     const collectionIds = _.map(collections, 'id');
     const additionalMetaData = {
@@ -483,7 +489,7 @@ class ProgramServiceHelper {
       channel: channel,
       openForContribution: false
     };
-    
+
     hierarchyService.filterExistingTextbooks(collectionIds, reqHeaders)
       .subscribe(
         (resData) => {
@@ -493,7 +499,7 @@ class ProgramServiceHelper {
               config: r.config.data
             }
           })
-  
+
           const existingTextbooks = hierarchyService.getExistingCollection(consolidatedResult);
           const nonExistingTextbooks = hierarchyService.getNonExistingCollection(consolidatedResult)
 
@@ -507,11 +513,11 @@ class ProgramServiceHelper {
                   const getCollectiveRequest = _.map(originHierarchyResultData, c => {
                     let children = [];
                     const cindex = collections.findIndex(r => r.id === c.hierarchy.content.identifier);
-  
+
                     if (cindex !== -1) {
                       children = collections[cindex].children;
                     }
-  
+
                     return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData, children);
                   })
                   hierarchyService.bulkUpdateHierarchy(getCollectiveRequest, reqHeaders)
@@ -520,7 +526,7 @@ class ProgramServiceHelper {
                         return obj.data
                       })
                       rspObj.result = updateResultData;
-                      rspObj.responseCode = 'OK' 
+                      rspObj.responseCode = 'OK'
                       cb(null, rspObj);
                       return true;
                     }, error => {
@@ -550,11 +556,11 @@ class ProgramServiceHelper {
                   const originHierarchyResultData = _.map(originHierarchyResult, r => {
                     return _.get(r, 'data')
                   })
-  
+
                   hierarchyService.createCollection(originHierarchyResultData, reqHeaders)
                     .subscribe(createResponse => {
                       const originHierarchy = _.map(originHierarchyResultData, 'result.content');
-  
+
                       const createdCollections = _.map(createResponse, cr => {
                         const mapOriginalHierarchy = {
                           creationResult: cr.data,
@@ -574,14 +580,14 @@ class ProgramServiceHelper {
                       const getBulkUpdateRequest = _.map(createdCollections, item => {
                         let children = [];
                         const cindex = collections.findIndex(r => r.id === item.hierarchy.content.identifier);
-  
+
                         if (cindex !== -1) {
                           children = collections[cindex].children;
                         }
-  
+
                         return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData, children)
                       })
-  
+
                       hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest, reqHeaders)
                         .subscribe(updateResult => {
                           const updateResultData = _.map(updateResult, obj => {
@@ -590,7 +596,7 @@ class ProgramServiceHelper {
 
                           rspObj.result = updateResultData;
                           rspObj.responseCode = 'OK';
-                          cb(null, rspObj);                          
+                          cb(null, rspObj);
                         }, error => {
                           errObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
                           errObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
@@ -625,6 +631,15 @@ class ProgramServiceHelper {
           return false;
         }
       );
+  }
+
+  getUserDetails(userId, reqHeaders) {
+    const option = {
+      url: `${envVariables.baseURL}/learner/user/v2/read/${userId}?fields=organisations,roles,locations`,
+      method: 'get',
+      headers: reqHeaders
+    };
+    return from(axios(option));
   }
 }
 
