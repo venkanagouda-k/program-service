@@ -29,19 +29,6 @@ describe('Program Service', () => {
     nock(envVariables.OPENSABER_SERVICE_URL)
     .post('/search', dummyData.regOrgSearch)
     .reply(200, {result: {Org: [{name: 'contributingOrg ABC', osid: dummyData.nominationAdd.organisation_id}]}} )
-
-    nock(envVariables.baseURL)
-    .post('/api/composite/v1/search', dummyData.getCollectionWithProgramId)
-    .reply(200, dummyData.resultsGetCollectionWithProgramId )
-
-    nock(envVariables.baseURL)
-    .post('/api/composite/v1/search', dummyData.getSampleContentWithProgramId)
-    .reply(200, dummyData.resultsGetSampleContentWithProgramId )
-
-    nock(envVariables.baseURL)
-    .post('/api/composite/v1/search', dummyData.getContributionWithProgramId)
-    .reply(200, dummyData.resultGetContributionWithProgramId )
-
   });
 
 
@@ -352,7 +339,66 @@ describe('Program Service', () => {
   })
   
   // eslint-disable-next-line no-undef
+  it('it should not get program details', (done) => {
+    const programDetails = {request: {filters: {program_id: [programId]}} }
+    dummyData.getCollectionWithProgramId.request.filters.programId = programId;
+    dummyData.getSampleContentWithProgramId.request.filters.programId = programId;
+    dummyData.getContributionWithProgramId.request.filters.programId = programId;
+    nock(envVariables.baseURL)
+    .post('/api/composite/v1/search', dummyData.getCollectionWithProgramId)
+    .reply(400, dummyData.resultsGetCollectionWithProgramId )
+
+    nock(envVariables.baseURL)
+    .post('/api/composite/v1/search', dummyData.getSampleContentWithProgramId)
+    .reply(200, dummyData.resultsGetSampleContentWithProgramId )
+
+    nock(envVariables.baseURL)
+    .post('/api/composite/v1/search', dummyData.getContributionWithProgramId)
+    .reply(200, dummyData.resultGetContributionWithProgramId )
+    chai.request(app)
+      .post(BASE_URL + '/list/download')
+      .set('Accept', 'application/json')
+      .send(programDetails)
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+        expect(res.status).to.equal(400)
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
   it('it should get program details', (done) => {
+    const programDetails = {request: {filters: {program_id: [programId]}} }
+    dummyData.getCollectionWithProgramId.request.filters.programId = programId;
+    dummyData.getSampleContentWithProgramId.request.filters.programId = programId;
+    dummyData.getContributionWithProgramId.request.filters.programId = programId;
+    nock(envVariables.baseURL)
+    .post('/api/composite/v1/search', dummyData.getCollectionWithProgramId)
+    .reply(200, dummyData.resultsGetCollectionWithProgramId )
+
+    nock(envVariables.baseURL)
+    .post('/api/composite/v1/search', dummyData.getSampleContentWithProgramId)
+    .reply(200, dummyData.resultsGetSampleContentWithProgramId )
+
+    nock(envVariables.baseURL)
+    .post('/api/composite/v1/search', dummyData.getContributionWithProgramId)
+    .reply(200, dummyData.resultGetContributionWithProgramId )
+    chai.request(app)
+      .post(BASE_URL + '/list/download')
+      .set('Accept', 'application/json')
+      .send(programDetails)
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+        expect(res.status).to.equal(200)
+        expect(res.body.result).to.have.property('tableData');
+        expect(res.body.result.tableData.length).to.equal(1);
+        expect(_.keys(res.body.result.tableData[0].values[0]).length).to.equal(12) // bez of some mandatory properties
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should get program details from cache', (done) => {
     const programDetails = {request: {filters: {program_id: [programId]}} }
     dummyData.getCollectionWithProgramId.request.filters.programId = programId;
     dummyData.getSampleContentWithProgramId.request.filters.programId = programId;
@@ -372,6 +418,26 @@ describe('Program Service', () => {
   })
   
   // eslint-disable-next-line no-undef
+  it('it should not download nomination list details', (done) => {
+    const programDetails = {request: {filters: {program_id: programId, program_name: 'Test case', status: 'Pending'}} }
+    dummyData.searchSampleContents.request.filters.programId = programId;
+    _.forEach(dummyData.resultSearchSampleContents.result.content, con => con.programId = programId);
+    nock(envVariables.baseURL)
+    .post('/api/composite/v1/search', dummyData.searchSampleContents)
+    .reply(400, {error: 'Something went wrong'} )
+    
+    chai.request(app)
+      .post(BASE_URL + '/nomination/list/download')
+      .set('Accept', 'application/json')
+      .send(programDetails)
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+        expect(res.status).to.equal(400)
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
   it('it should download nomination list details', (done) => {
     const programDetails = {request: {filters: {program_id: programId, program_name: 'Test case', status: 'Pending'}} }
     dummyData.searchSampleContents.request.filters.programId = programId;
@@ -379,6 +445,30 @@ describe('Program Service', () => {
     nock(envVariables.baseURL)
     .post('/api/composite/v1/search', dummyData.searchSampleContents)
     .reply(200, dummyData.resultSearchSampleContents )
+    
+    chai.request(app)
+      .post(BASE_URL + '/nomination/list/download')
+      .set('Accept', 'application/json')
+      .send(programDetails)
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+        expect(res.status).to.equal(200)
+        expect(res.body.result).to.have.property('stats');
+        expect(res.body.result.stats).to.be.a('array');
+        expect(_.keys(res.body.result.stats[0]).length).to.equal(7) // bez of some mandatory properties
+        expect(res.body.result.stats[0].sample).to.equal(2);
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should download nomination list details from cache', (done) => {
+    const programDetails = {request: {filters: {program_id: programId, program_name: 'Test case', status: 'Pending'}} }
+    dummyData.searchSampleContents.request.filters.programId = programId;
+    _.forEach(dummyData.resultSearchSampleContents.result.content, con => con.programId = programId);
+    // nock(envVariables.baseURL)
+    // .post('/api/composite/v1/search', dummyData.searchSampleContents)
+    // .reply(400, {error: 'Something went wrong'} )
     
     chai.request(app)
       .post(BASE_URL + '/nomination/list/download')
