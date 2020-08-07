@@ -1108,7 +1108,6 @@ function getNominationsList(req, response) {
       attributes: [...data.request.fields || []]
     }).then(async (result) => {
       let aggregatedRes = await aggregatedNominationCount(data, result);
-
       return response.status(200).send(successResponse({
         apiId: 'api.nomination.list',
         ver: '1.0',
@@ -1287,28 +1286,30 @@ function aggregatedNominationCount(data, result) {
   return new Promise((resolve, reject) => {
     try {
      let aggregatedRes = {}
-     aggregatedRes['nomination'] = { count: result.length }
-     const groupData =  _.reduce(result, (final, instance) => {
-        _.forEach(data.request.fields, (field) => {
-          field !== 'status' ?
-            final[field] = _.compact(_.uniq(_.flattenDeep([...final[field] || [], instance[field]]))) :
-               final[field] = [...final[field] || [], instance[field]];
-        });
-        return final;
-     }, {});
-     aggregatedRes.nomination['fields'] = _.map(data.request.fields, (field) => {
-       const obj = {name: field};
-       if (field === 'status') {
-         obj['fields'] = {}
-         const temp = _.groupBy(groupData[field]);
-         _.mapKeys(temp, (val, key) => {
-           obj.fields[key] = val.length
-         })
-       }else {
-         obj['count'] = groupData[field].length;
-       }
-       return obj;
-     })
+     aggregatedRes['nomination'] = { count: (result) ? result.length : 0 }
+     if (result && result.length > 0) {
+      const groupData =  _.reduce(result, (final, instance) => {
+          _.forEach(data.request.fields, (field) => {
+            field !== 'status' ?
+              final[field] = _.compact(_.uniq(_.flattenDeep([...final[field] || [], instance[field]]))) :
+                final[field] = [...final[field] || [], instance[field]];
+          });
+          return final;
+      }, {});
+      aggregatedRes.nomination['fields'] = _.map(data.request.fields, (field) => {
+        const obj = {name: field};
+        if (field === 'status') {
+          obj['fields'] = {}
+          const temp = _.groupBy(groupData[field]);
+          _.mapKeys(temp, (val, key) => {
+            obj.fields[key] = val.length
+          })
+        }else {
+          obj['count'] = groupData[field].length;
+        }
+        return obj;
+      });
+    }
      resolve(aggregatedRes);
     } catch(err) {
       reject(err);
