@@ -1,4 +1,5 @@
 const { forkJoin } = require("rxjs");
+const { from  } = require("rxjs");
 const _ = require("lodash");
 const envVariables = require("../envVariables");
 const axios = require("axios");
@@ -634,6 +635,54 @@ class ProgramServiceHelper {
       headers: reqHeaders
     };
     return from(axios(option));
+  }
+
+  getAllSourcingOrgUsers(orgUsers, filters, reqHeaders, limit = 500, offset= 0) {
+    offset = (!_.isUndefined(offset)) ? offset : 0;
+    limit = (!_.isUndefined(limit)) ? limit : 500;
+    return new Promise((resolve, reject) => {
+      this.getSourcingOrgUsers(reqHeaders, filters, offset, limit).subscribe(
+        (res) => {
+          const sourcingOrgUsers =  _.get(res, 'data.result.response.content', []);
+          const totalCount =  _.get(res, 'data.result.response.count');
+
+          if (sourcingOrgUsers.length > 0) {
+            orgUsers = _.compact(_.concat(orgUsers, sourcingOrgUsers));
+            offset = offset + sourcingOrgUsers.length;
+          }
+
+          if (totalCount > orgUsers.length){
+            return resolve(this.getAllSourcingOrgUsers(orgUsers, filters, reqHeaders, limit, offset));
+          }
+          return resolve(orgUsers);
+        },
+        (error) => {
+          return reject([]);
+        }
+      );
+    });
+  }
+
+  getSourcingOrgUsers(reqHeaders, reqFilters, offset, limit) {
+    const req = {
+      url: `${envVariables.baseURL}/learner/user/v1/search`,
+      method: 'post',
+      headers: reqHeaders,
+      data: {
+        request: {
+          filters: reqFilters
+        }
+      }
+    };
+
+    if (!_.isUndefined(limit)) {
+      req.data.request['limit'] = limit;
+    }
+    if (!_.isUndefined(offset)) {
+      req.data.request['offset'] = offset;
+    }
+
+    return from(axios(req));
   }
 }
 

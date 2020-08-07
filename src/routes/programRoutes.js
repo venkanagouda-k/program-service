@@ -101,6 +101,10 @@ module.exports = function (app) {
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programCountsByOrgAPI)
 
+  app.route(BASE_URL + '/sync/registry')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.syncUsersToRegistry)
+
   app.route(BASE_URL + '/preference/create')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       userProgramPreference.setUserPreferences)

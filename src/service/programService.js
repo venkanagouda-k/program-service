@@ -10,6 +10,8 @@ const programMessages = messageUtils.PROGRAM;
 const contentTypeMessages = messageUtils.CONTENT_TYPE;
 const configurationMessages = messageUtils.CONFIGURATION;
 const model = require('../models');
+const { from  } = require("rxjs");
+
 const {
   forkJoin
 } = require('rxjs');
@@ -560,7 +562,7 @@ function addOrUpdateNomination(programDetails, userReg) {
   if (!_.isEmpty(_.get(userReg,'Org.osid'))) {
     const insertObj = {
       program_id: programDetails.program_id,
-      user_id: _.get(userReg,'User.userId'),
+      user_id: programDetails.createdby,
       organisation_id: _.get(userReg,'Org.osid'),
       status: 'Approved',
       content_types: programDetails.content_types,
@@ -1467,6 +1469,20 @@ function getUsersDetails(req, userList) {
   });
 }
 
+function updateRegistry(request, reqHeaders) {
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/update`;
+  const reqData = {
+    "id": "open-saber.registry.update",
+    "request": request
+  }
+  console.log(reqData);
+  return from(axios({
+    method: 'post',
+    url: url,
+    headers: reqHeaders,
+    data: reqData
+  }));
+}
 
 function getOrgDetails(req, orgList) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
@@ -1557,7 +1573,7 @@ function getUserDetailsFromRegistry(value, callback) {
           var userDetails = res.data.result.User[0];
           callback(null, userDetails)
         } else {
-          callback("user does not exist")
+          callback(null, {});
         }
       } else {
         logger.error("Encountered some error while searching data")
@@ -1655,14 +1671,15 @@ function createUserRecords(user, userOrgMapDetails, orgInfoList, callback) {
   try {
     orgInfoList.map((org) => {
       var roles = null
+      var userOrgOsid = null
       userOrgMapDetails.forEach(function (element, index, array) {
         if (org.osid === element.orgId) {
           roles = element.roles;
+          userOrgOsid = element.osid;
         }
       });
-
+      org['userOrgOsid'] = userOrgOsid
       org['roles'] = roles
-
     });
 
     user['orgs'] = orgInfoList
@@ -2213,6 +2230,363 @@ function publishContent(req, response){
     )
 }
 
+function getUserOrganisationRoles(profileData) {
+  let userRoles = ['PUBLIC'];
+  if (profileData.organisations) {
+    _.forEach(profileData.organisations, (org) => {
+      if (org.roles && _.isArray(org.roles)) {
+        userRoles = _.union(userRoles, org.roles);
+      }
+    });
+  }
+  return userRoles;
+}
+
+function addorUpdateUserOrgMapping(userProfile, orgOsid, userOsid, userRegData, callbackFunction) {
+  let contribOrgs = [];
+  let sourcingOrgs = [];
+  let updateOsid = '';
+  let uRoles = [];
+  const userOrgRoles = getUserOrganisationRoles(userProfile);
+
+  // Check if user is already part of the organisation
+  if (!_.isEmpty(_.get(userRegData, 'res.orgs'))) {
+    _.forEach(_.get(userRegData, 'res.orgs'), mappingObj => {
+      if (mappingObj.roles.includes('user') || mappingObj.roles.includes('admin')) {
+        contribOrgs.push(mappingObj.osid);
+      }
+      if (mappingObj.roles.includes('sourcing_reviewer') || mappingObj.roles.includes('sourcing_admin')) {
+        sourcingOrgs.push(mappingObj.osid);
+      }
+
+      if (mappingObj.osid == orgOsid) {
+        uRoles = mappingObj.roles;
+        if (userOrgRoles.includes('CONTENT_REVIEWER') && !(mappingObj.roles.includes('sourcing_reviewer') || mappingObj.roles.includes('sourcing_admin'))) {
+          uRoles.push('sourcing_reviewer');
+          updateOsid = mappingObj.userOrgOsid;
+        } else if (!userOrgRoles.includes('CONTENT_REVIEWER') &&  !(mappingObj.roles.includes('user') || mappingObj.roles.includes('admin'))) {
+          updateOsid = mappingObj.userOrgOsid;
+          uRoles.push('user');
+        }
+      }
+    });
+  }
+  console.log(userOrgRoles.includes('CONTENT_REVIEWER'), userOrgRoles.includes('CONTENT_CREATOR'));
+
+  if (updateOsid) {
+    let regReq = {
+      body: {
+        id: "open-saber.registry.update",
+        request: {
+          User_Org: {
+            osid: updateOsid,
+            roles: _.uniq(uRoles)
+          }
+        }
+      }
+    }
+    registryService.updateRecord(regReq, (mapErr, mapRes) => {
+      if (mapRes && mapRes.status == 200 && _.get(mapRes.data, 'params.status' == "SUCCESSFUL")) {
+        callbackFunction(null, updateOsid);
+      }
+      else {
+        callbackFunction(mapErr, updateOsid);
+        logger.error("Encountered some error while updating data")
+      }
+    });
+  } else if (_.isEmpty(_.get(userRegData, 'res.orgs')) || (!userOrgRoles.includes('CONTENT_REVIEWER') && contribOrgs.length == 0) ||
+  (userOrgRoles.includes('CONTENT_REVIEWER') && sourcingOrgs.length == 0) || (sourcingOrgs.length > 0 && !sourcingOrgs.includes(orgOsid))) {
+    console.log("userOrgRoles", 'dd');
+    let regReq = {
+      body: {
+        id: "open-saber.registry.create",
+        request: {
+          User_Org: {
+            userId: userOsid,
+            orgId: orgOsid,
+            roles: ["user"],
+          }
+        }
+      }
+    }
+
+    if (userOrgRoles.includes('CONTENT_REVIEWER')) {
+      regReq.body.request.User_Org.roles.push("sourcing_reviewer");
+    }
+
+    console.log("userOrgRoles", regReq);
+    registryService.addRecord(regReq, (mapErr, mapRes) => {
+      if (mapRes && mapRes.status == 200 && _.get(mapRes.data, 'result') && _.get(mapRes.data, 'result.User_Org.osid')) {
+        callbackFunction(null, _.get(mapRes.data, 'result.User_Org.osid'));
+      }
+      else {
+        callbackFunction(mapErr, mapRes);
+      }
+    });
+  } else {
+    console.log("nothing")
+    callbackFunction(null, null);
+  }
+}
+
+function mapusersToContribOrg(orgOsid, filters, reqHeaders) {
+  let tempRes = {};
+  tempRes.error =  false;
+  tempRes.result = [];
+
+  var orgUsers = [];
+  return new Promise((resolve, reject) => {
+
+    // Get all diskha users
+    programServiceHelper.getAllSourcingOrgUsers(orgUsers, filters, reqHeaders)
+    .then((sourcingOrgUsers) => {
+      if (_.isEmpty(sourcingOrgUsers)) {
+        return resolve(tempRes);
+      }
+      tempRes.count = sourcingOrgUsers.length;
+      _.forEach(sourcingOrgUsers, (userProfile) => {
+          let re = {};
+          re.identifier = userProfile.identifier;
+          getUserRegistryDetails(userProfile.identifier).then((userRegData) => {
+          if (!userRegData.error) {
+            let userOsid = _.get(userRegData, 'res.osid');
+            if (!userOsid) {
+              let regReq = {
+                body: {
+                  id: "open-saber.registry.create",
+                  request: {
+                    User: {
+                      firstName: userProfile.firstName,
+                      lastName: userProfile.lastName || '',
+                      userId: userProfile.identifier,
+                      enrolledDate: new Date().toISOString(),
+                      channel: userProfile.rootOrgId
+                    }
+                  }
+                }
+              }
+              registryService.addRecord(regReq, (userErr, userRes) => {
+                if (userRes && userRes.status == 200 && _.get(userRes.data, 'result') && _.get(userRes.data, 'result.User.osid')) {
+                  userOsid = _.get(userRes.data, 'result.User.osid');
+                  re.userOsid = userOsid;
+                  addorUpdateUserOrgMapping(userProfile, orgOsid, userOsid, userRegData, function(err, res){
+                    if (!error) {
+                      re.orgOsid = orgOsid;
+                      re.userOrgOsid = res;
+                      tempRes.result.push(re);
+                      if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
+                        return resolve(tempRes);
+                      }
+                    } else {
+                      re.orgOsid = '';
+                      re.userOrgOsid = '';
+                      tempRes.result.push(re);
+                      console.log(err);
+                      logger.error({ msg: 'Error- while adding adding user to org details',err, additionalInfo: { userId: userProfile.identifier, userOsid: userOsid,orgOsid: orgOsid  } }, {});
+                      if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
+                        return resolve(tempRes);
+                      }
+                    }
+                  })
+                }
+                else {
+                  console.log(userRegData.error);
+                  logger.error({ msg: 'Error- while adding user reg details', additionalInfo: { userId: userProfile.identifier } }, {});
+                }
+              });
+            } else {
+              re.userOsid = userOsid;
+              addorUpdateUserOrgMapping(userProfile, orgOsid, userOsid, userRegData, function(err, res){
+                if (!err) {
+                  re.orgOsid = orgOsid;
+                  re.userOrgOsid = res;
+                  tempRes.result.push(re);
+                  if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
+                    return resolve(tempRes);
+                  }
+                } else {
+                  re.orgOsid = '';
+                  re.userOrgOsid = '';
+                  tempRes.result.push(re);
+                  console.log(err);
+                  logger.error({ msg: 'Error- while adding adding user to org details',err, additionalInfo: { userId: userProfile.identifier, userOsid: userOsid,orgOsid: orgOsid  } }, {});
+                  if (checkIfReturnResult(tempRes.result.length, tempRes.result.count)) {
+                    return resolve(tempRes);
+                  }
+                }
+              })
+            }
+          } else {
+            console.log(userRegData.error);
+            logger.error({ msg: 'Error- while getting reg details', additionalInfo: { userId: userProfile.identifier } }, {});
+          }
+        }).catch(function (err) {
+          console.log(err);
+          re.userOsid = '';
+          tempRes.result.push(re);
+          if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
+            return resolve(tempRes);
+          }
+        });
+      });
+    }, (err) => {
+      tempRes.error = true;
+      tempRes.result = "Error in getting org Users" + err;
+      return reject(tempRes);
+    });
+  });
+}
+
+function checkIfReturnResult(iteration, total) {
+  if (iteration === total) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function syncUsersToRegistry(req, response) {
+  var rspObj = req.rspObj;
+  const reqHeaders = req.headers;
+  var data = req.body;
+  var syncRes = {};
+   // Get the diskha users for org
+    model.program.findAll({
+      where: {
+        'status': 'Live'
+      },
+      attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('createdby')), 'createdby'], "rootorg_id"],
+      offset: 0,
+      limit: 1000
+    })
+    .then(function (res) {
+      const apiRes = _.map(res, 'dataValues');
+      syncRes.projCreators = {};
+      //syncRes.projCreators.count = apiRes.length;
+      syncRes.projCreators.result = [];
+      let creatorRes = {};
+      let i = 0;
+      _.forEach(apiRes, progObj => {
+          creatorRes.identifier = progObj.createdby;
+            let userDetailReq = {
+              body: {
+                id: "open-saber.registry.search",
+                request: {
+                  entityType: ["User"],
+                  filters: {
+                    userId: {
+                      eq: progObj.createdby
+                    }
+                  }
+                }
+              }
+            }
+            registryService.searchRecord(userDetailReq, (err, res) => {
+              if (res && res.status == 200) {
+               if (res.data.result.User.length > 0) {
+                const osUser = res.data.result.User[0];
+                creatorRes.osid = osUser.osid;
+                let orgDetailReq = {
+                  body: {
+                    id: "open-saber.registry.search",
+                    request: {
+                      entityType: ["Org"],
+                      filters: {
+                        createdBy: {
+                          eq: osUser.osid
+                        }
+                      }
+                    }
+                  }
+                }
+                registryService.searchRecord(orgDetailReq, (err, res) => {
+                  if (res && res.status == 200) {
+                    if (res.data.result.Org.length > 0) {
+                      creatorRes.Orgs = [];
+                      const userOrgAPIPromise = [];
+                      _.forEach(res.data.result.Org, orgObj => {
+                          creatorRes.Orgs.push(orgObj.osid);
+                          let request = {
+                            Org: {
+                              osid: orgObj.osid,
+                              orgId: progObj.rootorg_id,
+                              type: ["contribute", "sourcing"],
+                            }
+                          }
+                          updateRegistry(request, reqHeaders).subscribe((resData) => {
+                            const filters = {
+                              'organisations.organisationId': progObj.rootorg_id,
+                              'organisations.roles': ['CONTENT_REVIEWER']
+                              //'organisations.roles': ['ORG_ADMIN', 'CONTENT_REVIEWER', 'CONTENT_CREATOR']
+                            };
+                            mapusersToContribOrg(orgObj.osid, filters, reqHeaders).then((tempRes)=> {
+                              creatorRes.users = tempRes;
+                              syncRes.projCreators.result.push(creatorRes);
+                              i++;
+                              if (i === apiRes.length) {
+                                return response.status(200).send(successResponse({
+                                  apiId: 'api.program.list',
+                                  ver: '1.0',
+                                  msgid: uuid(),
+                                  responseCode: 'OK',
+                                  result:syncRes
+                                }));
+                              }
+                            }).catch((error) => {
+                              i++;
+                              creatorRes.users = error;
+                              syncRes.projCreators.result.push(creatorRes);
+                              console.log(error)
+                              logger.error({ msg: 'Error- while adding users to contrib org', additionalInfo: { userId: progObj.createdby, orgs:creatorRes.Orgs } }, {});
+                              if (i === apiRes.length) {
+                                return response.status(200).send(successResponse({
+                                  apiId: 'api.program.list',
+                                  ver: '1.0',
+                                  msgid: uuid(),
+                                  responseCode: 'OK',
+                                  result:syncRes
+                                }));
+                              }
+                              /*rspObj.errMsg = "SYNC_FAILED"
+                              rspObj.responseCode = "Failed to add users to contrib org";
+                              rspObj.result = { userId: progObj.createdby, orgs:updatingOrgs };
+                              return response.status(400).send(errorResponse(rspObj));*/
+                              });
+                          },(error) => {
+                            creatorRes.users = error;
+                            syncRes.projCreators.result.push(creatorRes);
+                            console.log(error)
+                            logger.error({ msg: 'Error- while updating Orgs', additionalInfo: { userId: progObj.createdby, orgs:updatingOrgs } }, {});
+                            rspObj.errMsg = "SYNC_FAILED"
+                            rspObj.responseCode = "Failed to update the Orgs in the registry";
+                            rspObj.result = { userId: progObj.createdby, orgs:updatingOrgs };
+                            return response.status(400).send(errorResponse(rspObj));
+                          });
+                      });
+                    }
+                  }
+                });
+              } else {
+                syncRes.projCreators.result.push(creatorRes);
+                console.log("User not found in registry for" + progObj.createdby);
+                logger.error({ msg: 'Error - User not found in registry for', additionalInfo: { userId: progObj.createdby } }, {});
+              }
+            } else {
+              console.log("Encountered some error while getting Orgs created by" + progObj.createdby);
+              logger.error({ msg: 'Error - while getting Orgs created by', err, additionalInfo: { userId: progObj.createdby } }, {});
+            }
+          });
+      });
+
+    })
+    .catch(function (err) {
+      rspObj.errMsg = "SYNC_FAILED"
+      rspObj.responseCode = "Failed to get the programs";
+      rspObj.result = {};
+      return response.status(400).send(errorResponse(rspObj));
+    });
+}
+
 function loggerError(msg, errCode, errMsg, responseCode, error, req) {
   logger.error({ msg: msg, err: { errCode, errMsg, responseCode }, additionalInfo: { error } }, req)
 }
@@ -2264,7 +2638,7 @@ function getParams(msgId, status, errCode, msg) {
 
   return params
 }
-
+module.exports.syncUsersToRegistry = syncUsersToRegistry
 module.exports.getProgramAPI = getProgram
 module.exports.createProgramAPI = createProgram
 module.exports.updateProgramAPI = updateProgram
