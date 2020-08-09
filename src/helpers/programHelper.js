@@ -376,14 +376,21 @@ class ProgramServiceHelper {
         const chapterObj = {
           name: data.name,
           identifier: data.identifier,
-          count: 0
+          count: 0,
+          contentsContributed: 0,
+          contentsReviewed: 0
         }
         this.contentData = [];
+        this.contentsContributed = [];
+        this.contentsReviewed = [];
         this.chapterLevelCount(data);
         chapterObj['contentTypes'] = _.map(_.groupBy(this.contentData, 'name'), (val, key) => {
           chapterObj['count'] = chapterObj['count'] + val.length;
           return {name: key, count: val.length}
         });
+
+        chapterObj.contentsContributed = this.contentsContributed.length;
+        chapterObj.contentsReviewed = this.contentsReviewed.length;
         this.collectionData['chapter'].push(chapterObj);
       }
     }
@@ -395,10 +402,22 @@ class ProgramServiceHelper {
 
   chapterLevelCount(object) {
     const self = this;
-    if (object.contentType !== 'TextBook' && object.contentType !== 'TextBookUnit' &&
-          _.includes(this.acceptedContents, object.identifier)) {
+    if (object.contentType !== 'TextBook'
+      && object.contentType !== 'TextBookUnit'
+      && _.includes(this.acceptedContents, object.identifier)) {
           this.contentData.push({name: object.contentType});
     }
+
+    if (object.contentType !== 'TextBook'
+        && object.contentType !== 'TextBookUnit'
+        && object.status === 'Live') {
+          this.contentsContributed.push(object.identifier);
+          if (_.includes(this.acceptedContents, object.identifier)
+            || _.includes(this.rejectedContents, object.identifier)) {
+              this.contentsReviewed.push(object.identifier);
+        }
+    }
+
     if (object.children) {
       _.forEach(object.children, child => self.chapterLevelCount(child));
     }
@@ -458,6 +477,8 @@ class ProgramServiceHelper {
                   final['Subject'] = collection.subject;
                   final['Textbook Name'] = collection.name;
                   final['Chapter Name'] = unit.name;
+                  final['Total Contents Contributed'] = unit.contentsContributed || 0;
+                  final['Total Contents Reviewed'] = unit.contentsReviewed || 0;
                   final['Total number of Approved Contents'] = unit.count || 0;
                   _.forEach(contentTypes, type => final[type] = 0);
                   _.forEach(unit.contentTypes, type => final[type.name] = (final[type.name] || 0) + type.count);
