@@ -12,6 +12,7 @@ const programMessages = messageUtils.PROGRAM;
 const logger = require('sb_logger_util_v2');
 const { retry } = require("rxjs/operators");
 const HierarchyService = require('./updateHierarchy.helper');
+const { json } = require("sequelize");
 const hierarchyService = new HierarchyService()
 
 class ProgramServiceHelper {
@@ -124,6 +125,7 @@ class ProgramServiceHelper {
         request: queryFilter
       }
     };
+
     return axios(option);
   }
 
@@ -299,10 +301,12 @@ class ProgramServiceHelper {
     return new Promise((resolve, reject) => {
       this.getCollectionWithProgramId(program_id, req).then((res_collection) => {
         const collectionArr = res_collection.data && res_collection.data.result && res_collection.data.result.content || [];
-        forkJoin(..._.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier))).subscribe(data => {
+        const reqArr = [this.getContributionWithProgramId(program_id, req)];
+        const collectionReq = _.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier));
+        forkJoin(...reqArr.concat(collectionReq)).subscribe(data => {
         try {
+          const contribution = data.shift();
           const hierarchyArr = _.compact(_.map(data, obj => obj.data.result && obj.data.result.content));
-
           if (openForContribution == true) {
             _.forEach(hierarchyArr, item => {
               let children = [];
@@ -315,8 +319,8 @@ class ProgramServiceHelper {
             });
           }
 
-          const contentCount = this.approvedContentCount(hierarchyArr, program_id);
-
+          const aggregations = contribution.data && contribution.data.result && contribution.data.result.aggregations;
+          const contentCount = this.approvedContentCount(hierarchyArr, program_id, aggregations);
           resolve(contentCount);
         } catch (err) {
           reject('programServiceException: error in counting the approved contents');
@@ -330,10 +334,27 @@ class ProgramServiceHelper {
     });
   }
 
-  approvedContentCount(collectionHierarchy, program_id) {
+  approvedContentCount(collectionHierarchy, program_id, contributionResponse) {
     const collectionWithApprovedContent = _.map(collectionHierarchy, collection => {
       this.acceptedContents = _.uniq(collection.acceptedContents) || [];
+      this.rejectedContents = _.uniq(collection.rejectedContents) || [];
       this.collectionData = {};
+      this.collectionData['totalContentsReviewed'] = (_.union(this.acceptedContents, this.rejectedContents)).length;
+      this.collectionData['contributionsReceived'] = 0;
+
+      // Count of contribution
+      if (contributionResponse.length && contributionResponse[0].name === 'collectionId'
+      && contributionResponse[0].values.length) {
+        const statusCount = _.find(contributionResponse[0].values, {name: collection.identifier});
+        if (statusCount && statusCount.aggregations && statusCount.aggregations.length) {
+          _.forEach(statusCount.aggregations[0].values, (obj) => {
+            if (obj.name === 'live') {
+              this.collectionData['contributionsReceived'] = this.collectionData['contributionsReceived'] + obj.count;
+            }
+          });
+        }
+      }
+
       this.collectionLevelCount(collection);
       return this.collectionData
     });
@@ -398,6 +419,8 @@ class ProgramServiceHelper {
               final['Subject'] = collection.subject;
               final['Textbook Name'] = collection.name;
               final['Total Number of Chapters'] = collection.chapter ? collection.chapter.length : 0;
+              final['Total Contents Contributed'] = collection.contributionsReceived ? collection.contributionsReceived : 0;
+              final['Total Contents Reviewed'] = collection.totalContentsReviewed ? collection.totalContentsReviewed : 0;
               final['Chapters with atleast one approved in each contentType'] = contentTypes.length ? _.filter(collection.chapter, unit => unit.contentTypes.length === contentTypes.length).length : 0;
               final['Chapters with atleast one approved'] = _.filter(collection.chapter, unit => unit.contentTypes.length).length;
               final['Total number of Approved Contents'] = collection.count || 0;
