@@ -12,7 +12,6 @@ const programMessages = messageUtils.PROGRAM;
 const logger = require('sb_logger_util_v2');
 const { retry } = require("rxjs/operators");
 const HierarchyService = require('./updateHierarchy.helper');
-const { json } = require("sequelize");
 const hierarchyService = new HierarchyService()
 
 class ProgramServiceHelper {
