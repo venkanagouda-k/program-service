@@ -644,7 +644,7 @@ class ProgramServiceHelper {
       this.getSourcingOrgUsers(reqHeaders, filters, offset, limit).subscribe(
         (res) => {
           const sourcingOrgUsers =  _.get(res, 'data.result.response.content', []);
-          const totalCount =  _.get(res, 'data.result.response.count');
+          const totalCount = _.get(res, 'data.result.response.count');
 
           if (sourcingOrgUsers.length > 0) {
             orgUsers = _.compact(_.concat(orgUsers, sourcingOrgUsers));
@@ -657,7 +657,7 @@ class ProgramServiceHelper {
           return resolve(orgUsers);
         },
         (error) => {
-          return reject([]);
+          return reject(error.message);
         }
       );
     });
