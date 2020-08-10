@@ -960,17 +960,25 @@ function programList(req, response) {
       });
   } else if (data.request.filters && data.request.filters.role && data.request.filters.user_id) {
     const promises = [];
+    let status = data.request.filters.status && _.map(data.request.filters.status, x => "'" + x + "'" ) || '';
+
     _.forEach(data.request.filters.role, (role) => {
-       promises.push(
-        model.program.findAndCountAll({
-        where:{
-          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${data.request.filters.user_id}%')`)
-        },
-        offset: res_offset,
-        limit: res_limit,
-        order: [
-          ['updatedon', 'DESC']
-        ]
+        let whereCond = {
+          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${data.request.filters.user_id}%')`),
+        };
+
+        if (status) {
+          whereCond['status'] = Sequelize.literal(`"program"."status" IN (${status})`);
+        }
+
+        promises.push(
+          model.program.findAndCountAll({
+          where: whereCond,
+          offset: res_offset,
+          limit: res_limit,
+          order: [
+            ['updatedon', 'DESC']
+          ]
       })
       )
     })
