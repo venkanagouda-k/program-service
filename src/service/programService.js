@@ -2200,17 +2200,16 @@ async function generateApprovedContentReport(req, res) {
     const openForContribution = data.request.filters.openForContribution || false;
     const requests = _.map(filteredPrograms, program => programServiceHelper.getCollectionHierarchy(req, program, openForContribution));
     const aggregatedResult = await Promise.all(requests);
-
-    _.forEach(aggregatedResult, result => {
-      cacheManager_programReport.set({ key: `approvedContentCount_${result.program_id}`, value: result },
-      function (err, cacheCSVData) {
-        if (err) {
-          logger.error({msg: 'Error - caching', err, additionalInfo: {approvedContentCount: result}}, req)
-        } else {
-          logger.debug({msg: 'Caching  approvedContentCount - done', additionalInfo: {approvedContentCount: result}}, req)
-        }
+      _.forEach(aggregatedResult, result => {
+        cacheManager_programReport.set({ key: `approvedContentCount_${result.program_id}`, value: result },
+        function (err, cacheCSVData) {
+          if (err) {
+            logger.error({msg: 'Error - caching', err, additionalInfo: {approvedContentCount: result}}, req)
+          } else {
+            logger.debug({msg: 'Caching  approvedContentCount - done', additionalInfo: {approvedContentCount: result}}, req)
+          }
+        });
       });
-    });
 
     if (data.request.filters.report === 'textbookLevelReport') {
       const textbookLevelReport = await programServiceHelper.textbookLevelContentMetrics([...aggregatedResult, ...cacheData]);
