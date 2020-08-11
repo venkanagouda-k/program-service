@@ -468,19 +468,22 @@ function onAfterPublishProgram(programDetails, req) {
         });
       }
 
-      if (!_.get(userRegData, 'User.osid') || !_.get(userRegData, 'User_Org.orgId')){
+        if (!_.get(userRegData, 'User.osid') || !_.get(userRegData, 'User_Org.orgId')){
           // create a registry for the user adn then an org and create mapping for the org as a admin
           programServiceHelper.getUserDetails(programDetails.createdby, req.headers)
           .subscribe((res)=>{
-            if (res.data.responseCode == "OK" && !_.isEmpty(res.data.result.response)) {
+            if (res.data.responseCode == "OK" && !_.isEmpty(_.get(res.data, 'result.response.content'))) {
+              const userDetails = _.first(_.get(res.data, 'result.response.content'));
               if (!_.get(userRegData, 'User.osid') && !_.isEmpty(rootOrgInReg)) {
-                createUserMappingInRegistry(res.data.result.response, rootOrgInReg, regMethodCallback);
+                createUserMappingInRegistry(userDetails, rootOrgInReg, regMethodCallback);
               }
               else if (!_.get(userRegData, 'User.osid')) {
-                createUserOrgMappingInRegistry(res.data.result.response, regMethodCallback);
+                createUserOrgMappingInRegistry(userDetails, regMethodCallback);
               } else if (!_.get(userRegData, 'User_Org.orgId')) {
-                createOrgMappingInRegistry(res.data.result.response, userRegData, regMethodCallback);
+                createOrgMappingInRegistry(userDetails, userRegData, regMethodCallback);
               }
+            } else {
+              console.log("User could not found");
             }
           },(error)=> {
             console.log(error);
