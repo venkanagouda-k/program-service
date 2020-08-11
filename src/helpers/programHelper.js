@@ -630,10 +630,17 @@ class ProgramServiceHelper {
 
   getUserDetails(userId, reqHeaders) {
     const option = {
-      url: `${envVariables.baseURL}/learner/user/v2/read/${userId}?fields=organisations,roles,locations`,
-      method: 'get',
-      headers: reqHeaders
-    };
+      url: `${envVariables.baseURL}/learner/user/v1/search`,
+      method: 'POST',
+      headers: reqHeaders,
+      data: {
+        request: {
+          filters: {
+            identifier: userId,
+          }
+        }
+      }
+    }
     return from(axios(option));
   }
 
