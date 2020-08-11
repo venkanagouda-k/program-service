@@ -397,7 +397,7 @@ function onAfterPublishProgram(programDetails, req) {
     if (!errObj && rspObj) {
       addOrUpdateNomination(programDetails, rspObj.result);
 
-      const userReg = rspObj.result;
+      /*const userReg = rspObj.result;
 
       if (!_.isEmpty(_.get(userReg,'Org.osid'))){
         const filters = {
@@ -418,7 +418,7 @@ function onAfterPublishProgram(programDetails, req) {
           logger.error({ msg: 'Error- while adding users to contrib org',
           additionalInfo: { rootorg_id: programDetails.rootorg_id, orgOsid: _.get(userReg,'Org.osid') } }, {});
         });
-      }
+      }*/
     }
   }
   getUserRegistryDetails(programDetails.createdby).then((userRegRes) => {
@@ -468,7 +468,7 @@ function onAfterPublishProgram(programDetails, req) {
         });
       }
 
-        if (!_.get(userRegData, 'User.osid') || !_.get(userRegData, 'User_Org.orgId')){
+        if (!_.get(userRegData, 'User.osid') || !_.get(userRegData, 'User_Org.orgId')) {
           // create a registry for the user adn then an org and create mapping for the org as a admin
           programServiceHelper.getUserDetails(programDetails.createdby, req.headers)
           .subscribe((res)=>{
