@@ -397,7 +397,7 @@ function onAfterPublishProgram(programDetails, req) {
     if (!errObj && rspObj) {
       addOrUpdateNomination(programDetails, rspObj.result);
 
-      /*const userReg = rspObj.result;
+      const userReg = rspObj.result;
 
       if (!_.isEmpty(_.get(userReg,'Org.osid'))){
         const filters = {
@@ -418,7 +418,7 @@ function onAfterPublishProgram(programDetails, req) {
           logger.error({ msg: 'Error- while adding users to contrib org',
           additionalInfo: { rootorg_id: programDetails.rootorg_id, orgOsid: _.get(userReg,'Org.osid') } }, {});
         });
-      }*/
+      }
     }
   }
   getUserRegistryDetails(programDetails.createdby).then((userRegRes) => {
@@ -450,7 +450,7 @@ function onAfterPublishProgram(programDetails, req) {
             request: {
               entityType: ["Org"],
               filters: {
-                userId: {
+                orgId: {
                   eq: programDetails.rootorg_id
                 }
               }
@@ -1732,7 +1732,7 @@ function getUserOrgMappingDetailFromRegistry(user, callback) {
           userOrgMapList = res.data.result.User_Org
           callback(null, user, userOrgMapList)
         } else {
-          callback("Org not mapped to the user: " + user.userId)
+          callback(null, user, {})
         }
       } else {
         logger.error("Encountered some error while searching data")
@@ -2447,13 +2447,13 @@ function addorUpdateUserOrgMapping(userProfile, filterRootOrg, orgOsid, userOsid
     registryService.addRecord(regReq, (mapErr, mapRes) => {
       if (mapRes && mapRes.status == 200 && _.get(mapRes.data, 'result') && _.get(mapRes.data, 'result.User_Org.osid')) {
         consoleLogs.creatingUserOrgMapping['mappingOsid'] = _.get(mapRes.data, 'result.User_Org.osid');
-        consoleLogs.updatingUserOrgMapping['mapped'] = true;
+        consoleLogs.creatingUserOrgMapping['mapped'] = true;
         console.log(consoleLogs);
         callbackFunction(null, _.get(mapRes.data, 'result.User_Org.osid'));
       }
       else {
-        consoleLogs.updatingUserOrgMapping['mapped'] = false;
-        consoleLogs.updatingUserOrgMapping['error'] = mapErr;
+        consoleLogs.creatingUserOrgMapping['mapped'] = false;
+        consoleLogs.creatingUserOrgMapping['error'] = mapErr;
         console.log(consoleLogs);
         callbackFunction(mapErr, mapRes);
       }
@@ -2579,6 +2579,58 @@ function checkIfReturnResult(iteration, total) {
   }
 }
 
+function onBeforeMigratingUsers(request) {
+  // Get the diskha users for org
+  var data = request.body;
+  model.program.findAll({
+    where: {
+      'status': 'Live',
+      'rootorg_id': data.request.rootorg_id
+    },
+    attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('createdby')), 'createdby']],
+    offset: 0,
+    limit: 1000
+  }).then((res) => {
+    if (res.length > 0) {
+      const userIdArray = _.map(res, 'dataValues.createdby');
+      model.nomination.findAll({
+        where: {
+          'status': 'Approved',
+          "user_id": userIdArray
+        },
+        attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('organisation_id')), 'organisation_id']],
+        offset: 0,
+        limit: 1000
+      }).then((nomRes) => {
+        if (nomRes.length > 0) {
+          const osOrgIdArray = _.map(nomRes, 'dataValues.organisation_id');
+          const orgOsid = osOrgIdArray[0];
+          if (orgOsid) {
+            const filters = {
+              'organisations.organisationId': data.request.rootorg_id,
+              'organisations.roles': ['CONTENT_REVIEWER']
+            };
+            mapusersToContribOrg(orgOsid, filters, request.headers).then((tempRes)=> {
+              logger.debug({ msg: 'Users added to the contrib org',
+                additionalInfo: {
+                rootorg_id: programDetails.rootorg_id,
+                orgOsid: _.get(userReg,'Org.osid'),
+                res:tempRes
+                }
+              }, {});
+            }).catch((error) => {
+              console.log(error)
+              logger.error({ msg: 'Error- while adding users to contrib org',
+              additionalInfo: { rootorg_id: programDetails.rootorg_id, orgOsid: _.get(userReg,'Org.osid') } }, {});
+            });
+          }
+        }
+      }).catch((error) => {
+        console.log(error);
+      });
+    }
+  })
+}
 function syncUsersToRegistry(req, response) {
   var rspObj = req.rspObj;
   const reqHeaders = req.headers;
@@ -2608,7 +2660,7 @@ function syncUsersToRegistry(req, response) {
       'status': 'Live',
       'rootorg_id': data.request.rootorg_id
     },
-    attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('createdby')), 'createdby'], "rootorg_id"],
+    attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('createdby')), 'createdby']],
     offset: 0,
     limit: 1000
   }).then(function (res) {
@@ -2676,7 +2728,6 @@ function syncUsersToRegistry(req, response) {
                       }
                       userOrgAPIPromise.push(updateRegistry(request, reqHeaders));
                     });
-
                     forkJoin(...userOrgAPIPromise).subscribe((resData) => {
                       i++;
                       creatorRes.sync="SUCCESS";
@@ -2704,31 +2755,60 @@ function syncUsersToRegistry(req, response) {
                   }
                   else {
                     i++;
+                    syncRes.projCreators.result.push(creatorRes);
+                    if (i == apiRes.length)
+                    {
+                      rspObj.responseCode = "OK";
+                      rspObj.result = syncRes;
+                      return response.status(200).send(successResponse(rspObj));
+                    }
                   }
                 } else {
                   i++;
-                  creatorRes.error = "Encountered some error while getting Orgs";
+                  creatorRes.error = "Encountered some error while getting Orgs created";
                   console.log("Encountered some error while getting Orgs");
+                  syncRes.projCreators.result.push(creatorRes);
+                  if (i == apiRes.length)
+                  {
+                    rspObj.responseCode = "OK";
+                    rspObj.result = syncRes;
+                    return response.status(200).send(successResponse(rspObj));
+                  }
                 }
               });
             } else {
               i++;
-              creatorRes.error = "User not found in registry";
-              console.log("User not found in registry");
+              creatorRes.error = "User not found in registry " + progObj.createdby ;
+              console.log("User not found in registry", progObj.createdby);
+              syncRes.projCreators.result.push(creatorRes);
+              if (i == apiRes.length)
+              {
+                rspObj.responseCode = "OK";
+                rspObj.result = syncRes;
+                return response.status(200).send(successResponse(rspObj));
+              }
             }
           } else {
             i++;
-            creatorRes.error = "Encountered some error while getting User";
-            console.log("Encountered some error while getting User");
+            creatorRes.error = "Encountered some error while getting User " + progObj.createdby;
+            console.log("Encountered some error while getting User", progObj.createdby);
+            syncRes.projCreators.result.push(creatorRes);
+            if (i == apiRes.length)
+            {
+              rspObj.responseCode = "OK";
+              rspObj.result = syncRes;
+              return response.status(200).send(successResponse(rspObj));
+            }
           }
         });
       });
-    }).catch (function (err) {
+  }).then(onBeforeMigratingUsers(req))
+  .catch (function (err) {
       rspObj.errMsg = "SYNC_FAILED"
       rspObj.responseCode = "Failed to get the programs";
       rspObj.result = {};
       return response.status(400).send(errorResponse(rspObj));
-    });
+  });
 }
 
 function loggerError(msg, errCode, errMsg, responseCode, error, req) {
