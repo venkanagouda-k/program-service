@@ -124,6 +124,7 @@ class ProgramServiceHelper {
         request: queryFilter
       }
     };
+
     return axios(option);
   }
 
@@ -299,10 +300,12 @@ class ProgramServiceHelper {
     return new Promise((resolve, reject) => {
       this.getCollectionWithProgramId(program_id, req).then((res_collection) => {
         const collectionArr = res_collection.data && res_collection.data.result && res_collection.data.result.content || [];
-        forkJoin(..._.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier))).subscribe(data => {
+        const reqArr = [this.getContributionWithProgramId(program_id, req)];
+        const collectionReq = _.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier));
+        forkJoin(...reqArr.concat(collectionReq)).subscribe(data => {
         try {
+          const contribution = data.shift();
           const hierarchyArr = _.compact(_.map(data, obj => obj.data.result && obj.data.result.content));
-
           if (openForContribution == true) {
             _.forEach(hierarchyArr, item => {
               let children = [];
@@ -315,8 +318,8 @@ class ProgramServiceHelper {
             });
           }
 
-          const contentCount = this.approvedContentCount(hierarchyArr, program_id);
-
+          const aggregations = contribution.data && contribution.data.result && contribution.data.result.aggregations;
+          const contentCount = this.approvedContentCount(hierarchyArr, program_id, aggregations);
           resolve(contentCount);
         } catch (err) {
           reject('programServiceException: error in counting the approved contents');
@@ -330,10 +333,27 @@ class ProgramServiceHelper {
     });
   }
 
-  approvedContentCount(collectionHierarchy, program_id) {
+  approvedContentCount(collectionHierarchy, program_id, contributionResponse) {
     const collectionWithApprovedContent = _.map(collectionHierarchy, collection => {
       this.acceptedContents = _.uniq(collection.acceptedContents) || [];
+      this.rejectedContents = _.uniq(collection.rejectedContents) || [];
       this.collectionData = {};
+      this.collectionData['totalContentsReviewed'] = (_.union(this.acceptedContents, this.rejectedContents)).length;
+      this.collectionData['contributionsReceived'] = 0;
+
+      // Count of contribution
+      if (contributionResponse.length && contributionResponse[0].name === 'collectionId'
+      && contributionResponse[0].values.length) {
+        const statusCount = _.find(contributionResponse[0].values, {name: collection.identifier});
+        if (statusCount && statusCount.aggregations && statusCount.aggregations.length) {
+          _.forEach(statusCount.aggregations[0].values, (obj) => {
+            if (obj.name === 'live') {
+              this.collectionData['contributionsReceived'] = this.collectionData['contributionsReceived'] + obj.count;
+            }
+          });
+        }
+      }
+
       this.collectionLevelCount(collection);
       return this.collectionData
     });
@@ -356,14 +376,21 @@ class ProgramServiceHelper {
         const chapterObj = {
           name: data.name,
           identifier: data.identifier,
-          count: 0
+          count: 0,
+          contentsContributed: 0,
+          contentsReviewed: 0
         }
         this.contentData = [];
+        this.contentsContributed = [];
+        this.contentsReviewed = [];
         this.chapterLevelCount(data);
         chapterObj['contentTypes'] = _.map(_.groupBy(this.contentData, 'name'), (val, key) => {
           chapterObj['count'] = chapterObj['count'] + val.length;
           return {name: key, count: val.length}
         });
+
+        chapterObj.contentsContributed = this.contentsContributed.length;
+        chapterObj.contentsReviewed = this.contentsReviewed.length;
         this.collectionData['chapter'].push(chapterObj);
       }
     }
@@ -375,10 +402,22 @@ class ProgramServiceHelper {
 
   chapterLevelCount(object) {
     const self = this;
-    if (object.contentType !== 'TextBook' && object.contentType !== 'TextBookUnit' &&
-          _.includes(this.acceptedContents, object.identifier)) {
+    if (object.contentType !== 'TextBook'
+      && object.contentType !== 'TextBookUnit'
+      && _.includes(this.acceptedContents, object.identifier)) {
           this.contentData.push({name: object.contentType});
     }
+
+    if (object.contentType !== 'TextBook'
+        && object.contentType !== 'TextBookUnit'
+        && object.status === 'Live') {
+          this.contentsContributed.push(object.identifier);
+          if (_.includes(this.acceptedContents, object.identifier)
+            || _.includes(this.rejectedContents, object.identifier)) {
+              this.contentsReviewed.push(object.identifier);
+        }
+    }
+
     if (object.children) {
       _.forEach(object.children, child => self.chapterLevelCount(child));
     }
@@ -398,6 +437,8 @@ class ProgramServiceHelper {
               final['Subject'] = collection.subject;
               final['Textbook Name'] = collection.name;
               final['Total Number of Chapters'] = collection.chapter ? collection.chapter.length : 0;
+              final['Total Contents Contributed'] = collection.contributionsReceived ? collection.contributionsReceived : 0;
+              final['Total Contents Reviewed'] = collection.totalContentsReviewed ? collection.totalContentsReviewed : 0;
               final['Chapters with atleast one approved in each contentType'] = contentTypes.length ? _.filter(collection.chapter, unit => unit.contentTypes.length === contentTypes.length).length : 0;
               final['Chapters with atleast one approved'] = _.filter(collection.chapter, unit => unit.contentTypes.length).length;
               final['Total number of Approved Contents'] = collection.count || 0;
@@ -436,6 +477,8 @@ class ProgramServiceHelper {
                   final['Subject'] = collection.subject;
                   final['Textbook Name'] = collection.name;
                   final['Chapter Name'] = unit.name;
+                  final['Total Contents Contributed'] = unit.contentsContributed || 0;
+                  final['Total Contents Reviewed'] = unit.contentsReviewed || 0;
                   final['Total number of Approved Contents'] = unit.count || 0;
                   _.forEach(contentTypes, type => final[type] = 0);
                   _.forEach(unit.contentTypes, type => final[type.name] = (final[type.name] || 0) + type.count);
