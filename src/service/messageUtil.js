@@ -319,6 +319,7 @@ exports.RESPONSE_CODE = {
   SERVER_ERROR: 'SERVER_ERROR',
   SUCCESS: 'OK',
   RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
+  PROCESS_NOT_FOUND: 'PROCESS_NOT_FOUND',
   UNAUTHORIZED_ACCESS: 'UNAUTHORIZED_ACCESS',
   PARTIAL_SUCCESS: 'PARTIAL_SUCCESS'
 }
@@ -812,5 +813,34 @@ exports.EXTERNAL_URL_META = {
     MISSING_MESSAGE: 'Required fields for fetching url meta data are missing',
     FAILED_CODE: 'ERR_FETCH_URLMETA_FAILED',
     FAILED_MESSAGE: 'Unable to load the url metadata'
+  }
+}
+
+exports.BULK_JOB_REQUEST = {
+  CREATE: {
+    MISSING_CODE: 'ERR_CREATE_BULK_JOB',
+    MISSING_MESSAGE: 'Required fields to create bulk job request are missing',
+    FAILED_CODE: 'ERR_CREATE_BULK_JOB_REQUEST_FAILED',
+    FAILED_MESSAGE: 'Unable to create the bulk job request'
+  },
+  READ: {
+    FAILED_CODE: 'ERROR_READING_BULK_JOB_REQUEST',
+    FAILED_MESSAGE: 'Error fetching bulk job request for the requested process_id'
+  },
+  UPDATE: {
+    MISSING_CODE: 'ERR_UPDATING_BULK_JOB_REQUEST',
+    MISSING_MESSAGE: 'Required fields like process_id to update bulk job request are missing',
+    FAILED_CODE: 'ERR_UPDATE_BULK_JOB_REQUEST_FAILED',
+    FAILED_MESSAGE: 'Unable to update the bulk job request',
+    PROCESS_ID_MISSING_CODE: 'ERR_UPDATING_BULK_JOB_REQUEST',
+    PROCESS_ID_FAILED_MESSAGE: 'process_id not found',
+    UPDATE_FAILED_CODE: 'ERR_UPDATING_BULK_JOB_REQUEST',
+    UPDATE_FAILED_MESSAGE: 'Unable to update job for the request process_id'
+  },
+  SEARCH: {
+    MISSING_CODE: 'ERR_SEARCHING_BULK_JOB_REQUEST',
+    MISSING_MESSAGE: 'Required fields like filters are missing',
+    FAILED_CODE: 'ERROR_SEARCHING_BULK_JOB_REQUEST',
+    FAILED_MESSAGE: 'Unable to search for bulk job'
   }
 }
