@@ -2919,7 +2919,7 @@ function syncUsersToRegistry(req, response) {
                       let request = {
                         Org: {
                           osid: orgObj.osid,
-                          orgId: progObj.rootorg_id,
+                          orgId: data.request.rootorg_id,
                           type: ["contribute", "sourcing"],
                         }
                       }
