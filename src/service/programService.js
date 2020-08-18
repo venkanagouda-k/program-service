@@ -234,16 +234,20 @@ function publishProgram(req, response) {
               result: 'Program_id Not Found'
             }));
           }
-          return response.status(200).send(successResponse({
-            apiId: 'api.program.publish',
-            ver: '1.0',
-            msgid: uuid(),
-            responseCode: 'OK',
-            result: {
-              'program_id': updateQuery.where.program_id
-            }
-          }));
-        }).then(onAfterPublishProgram(res,req))
+          onAfterPublishProgram(res,req, function(afterPublishResponse) {
+              return response.status(200).send(successResponse({
+                apiId: 'api.program.publish',
+                ver: '1.0',
+                msgid: uuid(),
+                responseCode: 'OK',
+                result: {
+                  'program_id': updateQuery.where.program_id,
+                  afterPublishResponse
+                }
+              }));
+          });
+
+        })/*.then(onAfterPublishProgram(res,req))*/
         .catch(error => {
           // console.log(error)
           return response.status(400).send(errorResponse({
@@ -337,17 +341,19 @@ function unlistPublishProgram(req, response) {
               result: 'Program_id Not Found'
             }));
           }
-          return response.status(200).send(successResponse({
-            apiId: 'api.program.unlist.publish',
-            ver: '1.0',
-            msgid: uuid(),
-            responseCode: 'OK',
-            result: {
-              'program_id': updateQuery.where.program_id
-            }
-          }));
-        }).then(onAfterPublishProgram(res,req))
-        .catch(error => {
+          onAfterPublishProgram(res,req, function(afterPublishResponse) {
+            return response.status(200).send(successResponse({
+              apiId: 'api.program.publish',
+              ver: '1.0',
+              msgid: uuid(),
+              responseCode: 'OK',
+              result: {
+                'program_id': updateQuery.where.program_id,
+                afterPublishResponse
+              }
+            }));
+        });
+        }).catch(error => {
           // console.log(error)
           return response.status(400).send(errorResponse({
             apiId: 'api.program.unlist.publish',
@@ -378,124 +384,219 @@ function unlistPublishProgram(req, response) {
   });
 }
 
-function onAfterPublishProgram(programDetails, req) {
-  /*const regMethodCallback = function (errObj, rspObj){
-
-  }
-  const userProfile = {
-    firstName: "newTest1",
-    lastName: "newTest1 done" || '',
-    identifier: "ab123456",
-    enrolledDate: new Date().toISOString(),
-    channel: "ab1channel1",
-    rootOrgName: "ab1root1"
-  }
-  createUserOrgMappingInRegistry(userProfile, regMethodCallback);
-  return true;*/
-  const reqHeaders = req.headers;
-  const regMethodCallback = function (errObj, rspObj){
-    if (!errObj && rspObj) {
-      addOrUpdateNomination(programDetails, rspObj.result);
-
-      const userReg = rspObj.result;
-
-      if (!_.isEmpty(_.get(userReg,'Org.osid'))){
-        const filters = {
-          'organisations.organisationId': programDetails.rootorg_id,
-          'organisations.roles': ['ORG_ADMIN', 'CONTENT_REVIEWER', 'CONTENT_CREATOR']
-        };
-        mapusersToContribOrg(_.get(userReg,'Org.osid'), filters, reqHeaders).then((tempRes)=> {
-          logger.debug({ msg: 'Users added to the contrib org',
-            additionalInfo: {
-            rootorg_id: programDetails.rootorg_id,
-            orgOsid: _.get(userReg,'Org.osid'),
-            res:tempRes
-            }
-          }, {});
-
-        }).catch((error) => {
-          console.log(error)
-          logger.error({ msg: 'Error- while adding users to contrib org',
-          additionalInfo: { rootorg_id: programDetails.rootorg_id, orgOsid: _.get(userReg,'Org.osid') } }, {});
+function getOsOrgForRootOrgId(rootorg_id, userRegData, reqHeaders) {
+    let returnRes = {};
+    // for some reason if user is not mapped to the osOrg where orgId = rootOrg_id,
+    return new Promise((resolve, reject) => {
+      let osOrgforRootOrgInRegData = {}
+      if (!_.isEmpty(_.get(userRegData, 'Org'))) {
+        returnRes['osOrgforRootOrg'] =  _.find(_.get(userRegData, 'Org'), {
+          orgId: rootorg_id
         });
       }
-    }
-  }
-  getUserRegistryDetails(programDetails.createdby).then((userRegRes) => {
-    if (!userRegRes.error) {
-      const userRegData = {};
-      userRegData['User'] = {};
-      userRegData['Org'] = {};
-      userRegData['User_Org'] = {};
-      if (_.get(userRegRes, 'res.osid')) {
-        userRegData['User'] = userRegRes.res;
-      }
-
-      let rootOrgInReg = {};
-      if (!_.isEmpty(_.get(userRegRes.res, 'orgs'))) {
-        rootOrgInReg =  _.find(_.get(userRegRes.res, 'orgs'), {
-            orgId: programDetails.rootorg_id
-          });
-        if (rootOrgInReg) {
-          userRegData.Org.osid = rootOrgInReg.osid;
-          userRegData.User_Org.orgId = rootOrgInReg.osid;
+      if (!_.isEmpty(returnRes['osOrgforRootOrg'])) {
+        returnRes['orgFoundInRegData'] = true;
+        return resolve(returnRes);
+      } else {
+        returnRes['orgFoundInRegData'] = false;
+        let orgRequest = {
+          entityType: ["Org"],
+          filters: {
+            orgId: {
+              eq: rootorg_id
+            }
+          }
         }
-      }
+        const osOrgSeachErr = {"error": true, "msg": "OS search error: Error while searching OsOrg for orgId ${rootorg_id}"};
 
-      // If user is not mapped to the org with the rootOrgid for some reason get the org from registry with orgId as rootOrgId
-      if (!rootOrgInReg) {
-        let userDetailReq = {
-          body: {
-            id: "open-saber.registry.search",
-            request: {
-              entityType: ["Org"],
-              filters: {
-                orgId: {
-                  eq: programDetails.rootorg_id
+        searchRegistry(orgRequest, reqHeaders).then((orgRes)=> {
+          if (orgRes && orgRes.status == 200) {
+            if (orgRes.data.result.Org.length > 0) {
+              returnRes['osOrgforRootOrg'] = _.first(orgRes.data.result.Org);
+              return resolve(returnRes);
+            } else {
+              returnRes['osOrgforRootOrg'] = {};
+              return resolve(returnRes);
+            }
+          } else {
+            return reject(osOrgSeachErr);
+          }
+        }, (res3Error)=> {
+          return reject(res3Error || osOrgSeachErr);
+        }).catch((error)=>{
+          return reject(error || osOrgSeachErr);
+        });
+      }
+  })
+}
+
+function onAfterPublishProgram(programDetails, req, afterPublishCallback) {
+  const reqHeaders = req.headers;
+  const onPublishResult = {};
+  onPublishResult['nomination']= {};
+  onPublishResult['userMapping']= {};
+  getUserRegistryDetails(programDetails.createdby).then((userRegData) => {
+    getOsOrgForRootOrgId(programDetails.rootorg_id, userRegData, reqHeaders).then((osOrgforRootOrgRes) => {
+      const iforgFoundInRegData = osOrgforRootOrgRes.orgFoundInRegData;
+      const osOrgforRootOrg = osOrgforRootOrgRes.osOrgforRootOrg;
+      const userOsid = _.get(userRegData, 'User.osid');
+      const contribMapped = _.find(userRegData.User_Org, function(o) { return o.roles.includes('user') || o.roles.includes('admin') });
+      if (userOsid && iforgFoundInRegData && !_.isEmpty(osOrgforRootOrg)) {
+        // When in opensaber user is mapped to the org with OrgId as rootOrgId
+        addOrUpdateNomination(programDetails, osOrgforRootOrg.osid).then ((nominationRes) => {
+          onPublishResult.nomination['error'] = null;
+          onPublishResult.nomination['result'] = nominationRes;
+          afterPublishCallback(onPublishResult);
+        }).catch((error) => {
+          onPublishResult.nomination['error'] = error;
+          onPublishResult.nomination['result'] = {};
+          afterPublishCallback(onPublishResult);
+        });
+        /*const rspObj = {};
+        rspObj.result = userRegData;
+        rspObj.result.User_Org.orgId = osOrgforRootOrg.osid;
+        rspObj.result.programDetails = programDetails;
+        rspObj.result.reqHeaders = reqHeaders;
+        rspObj.error = {};
+        rspObj.responseCode = 'OK';
+        regMethodCallback(null, rspObj)*/
+      } else if (userOsid && !iforgFoundInRegData && !_.isEmpty(osOrgforRootOrg)) {
+        // When in opensaber user is *not mapped to the org with OrgId as rootOrgId, but we found a org with orgId as rootorgId through query
+        // We can map that user to the found org only when user is not mapped to any other org as 'user' or 'admin'
+        if (!_.isEmpty(contribMapped)) {
+          addOrUpdateNomination(programDetails, osOrgforRootOrg.osid).then ((nominationRes) => {
+            onPublishResult.nomination['error'] = null;
+            onPublishResult.nomination['result'] = nominationRes;
+            afterPublishCallback(onPublishResult);
+          }).catch((error) => {
+            onPublishResult.nomination['error'] = error;
+            onPublishResult.nomination['result'] = {};
+            afterPublishCallback(onPublishResult);
+          });
+        } else {
+          // map user to the org as admin
+          let regReq = {
+            body: {
+              id: "open-saber.registry.create",
+              request: {
+                User_Org: {
+                  userId: userOsid,
+                  orgId: osOrgforRootOrg.osid,
+                  roles: ['admin']
                 }
               }
             }
           }
+          registryService.addRecord(regReq, (userOrgErr, userOrgRes) => {
+            if (!userOrgErr && userOrgRes && userOrgRes.status == 200 &&
+              !_.isEmpty(_.get(userOrgRes.data, 'result')) && _.get(userOrgRes.data, 'result.User_Org.osid')) {
+                addOrUpdateNomination(programDetails, osOrgforRootOrg.osid).then ((nominationRes) => {
+                  onPublishResult.nomination['error'] = null;
+                  onPublishResult.nomination['result'] = nominationRes;
+                  afterPublishCallback(onPublishResult);
+                }).catch((error) => {
+                  onPublishResult.nomination['error'] = error;
+                  onPublishResult.nomination['result'] = {};
+                  afterPublishCallback(onPublishResult);
+                });
+            } else if (userOrgErr) {
+              onPublishResult['error'] = userOrgErr;
+              afterPublishCallback(onPublishResult);
+             }
+          })
         }
-        registryService.searchRecord(userDetailReq, (err, res) => {
-          if (res && res.status == 200) {
-           if (res.data.result.Org.length > 0) {
-            rootOrgInReg = res.data.result.Org[0];
-            userRegData.Org.osid = orgObj.osid;
-            userRegData.User_Org.orgId = orgObj.osid;
-           }
+      } else {
+        const  regMethodCallback = (errObj, rspObj) => {
+          if (!errObj && rspObj) {
+            const userReg = rspObj.result;
+
+            addOrUpdateNomination(programDetails, userReg.User_Org.orgId).then((nominationRes) => {
+              onPublishResult.nomination['error'] = null;
+              onPublishResult.nomination['result'] = nominationRes;
+              afterPublishCallback(onPublishResult);
+            }).then((nominationRes) => {
+              if (!_.isEmpty(_.get(userReg,'User_Org.orgId'))){
+                const filters = {
+                  'organisations.organisationId': programDetails.rootorg_id,
+                  'organisations.roles': ['ORG_ADMIN', 'CONTENT_REVIEWER', 'CONTENT_CREATOR']
+                };
+                mapusersToContribOrg(_.get(userReg,'User_Org.orgId'), filters, reqHeaders).then((tempRes)=> {
+                  onPublishResult.userMapping['error'] = null;
+                  onPublishResult.userMapping['result'] = {
+                    count: tempRes.count,
+                    rootorg_id: programDetails.rootorg_id,
+                    orgOsid: _.get(userReg,'User_Org.orgId'),
+                  };
+                  console.log({ msg: 'Users added to the contrib org',
+                    additionalInfo: {
+                    rootorg_id: programDetails.rootorg_id,
+                    orgOsid: _.get(userReg,'User_Org.orgId'),
+                    res:tempRes
+                    }
+                  });
+                  logger.debug({ msg: 'Users added to the contrib org',
+                    additionalInfo: {
+                    rootorg_id: programDetails.rootorg_id,
+                    orgOsid: _.get(userReg,'User_Org.orgId'),
+                    res:tempRes
+                    }
+                  }, {});
+
+
+                }).catch((error) => {
+                  onPublishResult.userMapping['error'] = error;
+                  onPublishResult.userMapping['result'] = { };
+                  console.log(error)
+                  logger.error({ msg: 'Error- while adding users to contrib org',
+                  additionalInfo: { rootorg_id: programDetails.rootorg_id, orgOsid: _.get(userReg,'User_Org.orgId') } }, {});
+                });
+              }
+            }).catch((error) => {
+                console.log(error);
+                onPublishResult.nomination['error'] = nominationRes;
+                onPublishResult.nomination['result'] = {};
+                afterPublishCallback(onPublishResult);
+            });
+          } else {
+            onPublishResult['error'] = errObj;
+            afterPublishCallback(onPublishResult);
           }
+        }
+        // create a registry for the user adn then an org and create mapping for the org as a admin
+        programServiceHelper.getUserDetails(programDetails.createdby, reqHeaders)
+        .subscribe((res)=> {
+          if (res.data.responseCode == "OK" && !_.isEmpty(_.get(res.data, 'result.response.content'))) {
+            const userDetails = _.first(_.get(res.data, 'result.response.content'));
+            if (!userOsid && !_.isEmpty(osOrgforRootOrg)) {
+              // if user for created by is not present but org for rootOrg id exists
+              createUserMappingInRegistry(userDetails, osOrgforRootOrg, regMethodCallback);
+            } else if (!userOsid && _.isEmpty(osOrgforRootOrg)) {
+              // if user for created by and org for rootOrg id are not present
+              createUserOrgMappingInRegistry(userDetails, regMethodCallback);
+            } else if (userOsid && _.isEmpty(osOrgforRootOrg)) {
+              // if user for created by is present but org for rootOrg id is not present
+              createOrgMappingInRegistry(userDetails, userRegData, regMethodCallback);
+            }
+          } else {
+            onPublishResult['error'] = {msg: "error while getting users details from Diksha"};
+            afterPublishCallback(onPublishResult);
+          }
+        },(error)=> {
+          onPublishResult['error'] = {msg: "error while getting users details from Diksha " + error.message};
+          afterPublishCallback(onPublishResult);
         });
       }
-
-        if (!_.get(userRegData, 'User.osid') || !_.get(userRegData, 'User_Org.orgId')) {
-          // create a registry for the user adn then an org and create mapping for the org as a admin
-          programServiceHelper.getUserDetails(programDetails.createdby, req.headers)
-          .subscribe((res)=>{
-            if (res.data.responseCode == "OK" && !_.isEmpty(_.get(res.data, 'result.response.content'))) {
-              const userDetails = _.first(_.get(res.data, 'result.response.content'));
-              if (!_.get(userRegData, 'User.osid') && !_.isEmpty(rootOrgInReg)) {
-                createUserMappingInRegistry(userDetails, rootOrgInReg, regMethodCallback);
-              }
-              else if (!_.get(userRegData, 'User.osid')) {
-                createUserOrgMappingInRegistry(userDetails, regMethodCallback);
-              } else if (!_.get(userRegData, 'User_Org.orgId')) {
-                createOrgMappingInRegistry(userDetails, userRegData, regMethodCallback);
-              }
-            } else {
-              console.log("User could not found");
-            }
-          },(error)=> {
-            console.log(error);
-          });
-      } else {
-        /*const res = {};
-        res.result = userRegData;
-        regMethodCallback(null, res);*/
-        addOrUpdateNomination(programDetails, userRegData)
-      }
-    }
-  });
+    })
+    .catch((error) => {
+      console.error(error);
+      onPublishResult['error'] = {"msg": "getOsOrgForRootOrgId failed " + error.message};
+      afterPublishCallback(onPublishResult);
+    })
+  }).catch((error) => {
+    console.error(error);
+    onPublishResult['error'] = error;
+    afterPublishCallback(onPublishResult);
+  })
 }
 
 function createUserMappingInRegistry(userProfile, rootOrgInReg, regMethodCallback) {
@@ -533,6 +634,7 @@ function createUserMappingInRegistry(userProfile, rootOrgInReg, regMethodCallbac
       registryService.addRecord(regReq, (userOrgErr, userOrgRes) => {
         if (userOrgRes && userOrgRes.status == 200 && _.get(userOrgRes.data, 'result') && _.get(userOrgRes.data, 'result.User_Org.osid')) {
             rspObj.result['User_Org'] = userOrgRes.data.result.User_Org;
+            rspObj.result.User_Org.orgId = rspObj.result.Org.osid;
             regMethodCallback(null, rspObj);
         } else {
           rspObj.error = userOrgErr;
@@ -596,6 +698,7 @@ function createUserOrgMappingInRegistry(userProfile, regMethodCallback) {
                   registryService.addRecord(regReq, (userOrgErr, userOrgRes) => {
                     if (userOrgRes && userOrgRes.status == 200 && _.get(userOrgRes.data, 'result') && _.get(userOrgRes.data, 'result.User_Org.osid')) {
                         rspObj.result['User_Org'] = userOrgRes.data.result.User_Org;
+                        rspObj.result.User_Org.orgId = rspObj.result.Org.osid;
                         regMethodCallback(null, rspObj);
                     } else {
                       rspObj.error = userOrgErr;
@@ -652,6 +755,7 @@ function createOrgMappingInRegistry(userProfile, userReg, regMethodCallback) {
         registryService.addRecord(regReq, (userOrgErr, userOrgRes) => {
           if (userOrgRes && userOrgRes.status == 200 && _.get(userOrgRes.data, 'result') && _.get(userOrgRes.data, 'result.User_Org.osid')) {
               rspObj.result['User_Org'] = userOrgRes.data.result.User_Org;
+              rspObj.result.User_Org.orgId = rspObj.result.Org.osid;
               regMethodCallback(null, rspObj);
           } else {
             rspObj.error = userOrgErr;
@@ -667,100 +771,153 @@ function createOrgMappingInRegistry(userProfile, userReg, regMethodCallback) {
   });
 }
 
-function addOrUpdateNomination(programDetails, userReg) {
+function addOrUpdateNomination(programDetails, orgosid) {
+  return new Promise((resolve, reject) => {
+    if (orgosid) {
+      const insertObj = {
+        program_id: programDetails.program_id,
+        user_id: programDetails.createdby,
+        organisation_id: orgosid,
+        status: 'Approved',
+        content_types: programDetails.content_types,
+        collection_ids: programDetails.copiedCollections,
+      };
 
-  if (!_.isEmpty(_.get(userReg,'Org.osid'))) {
-    const insertObj = {
-      program_id: programDetails.program_id,
-      user_id: programDetails.createdby,
-      organisation_id: _.get(userReg,'Org.osid'),
-      status: 'Approved',
-      content_types: programDetails.content_types,
-      collection_ids: programDetails.copiedCollections,
-    };
+      let findNomWhere =  {
+        program_id: programDetails.program_id,
+        organisation_id: orgosid
+      }
+      return model.nomination.findOne({
+        where: findNomWhere
+      }).then((res) => {
+          if (res && res.dataValues.id) {
+            const updateValue = {
+              status: 'Approved',
+              content_types: programDetails.content_types,
+              collection_ids: programDetails.copiedCollections,
+              updatedon: new Date(),
+            };
 
-    let findNomWhere =  {
-      program_id: programDetails.program_id,
-      organisation_id: _.get(userReg,'Org.osid')
-    }
-    return model.nomination.findOne({
-      where: findNomWhere
-    }).then((res) => {
-        if (res && res.dataValues.id) {
-          const updateValue = {
-            status: 'Approved',
-            content_types: programDetails.content_types,
-            collection_ids: programDetails.copiedCollections,
-            updatedon: new Date(),
-          };
+            const updateQuery = {
+              where: findNomWhere,
+              returning: true,
+              individualHooks: true,
+            };
 
-          const updateQuery = {
-            where: findNomWhere,
-            returning: true,
-            individualHooks: true,
-          };
-
-          model.nomination.update(updateValue, updateQuery).then(resData => {
-            if (_.isArray(resData) && !resData[0]) {
-              logger.error({ msg: 'Nomination update failed',additionalInfo: { nomDetails: insertObj } }, {})
-            } else {
-              logger.debug({ msg: 'Nomination updated successfully', additionalInfo: { nomDetails: insertObj } }, {})
-            }
-          }).catch(error => {
-              // console.log(error)
-              logger.error({ msg: 'Nomination update failed', error, additionalInfo: { nomDetails: insertObj } }, {})
+            model.nomination.update(updateValue, updateQuery).then(resData => {
+              if (_.isArray(resData) && !resData[0]) {
+                return reject({ msg: 'Nomination update failed',additionalInfo: { nomDetails: insertObj }});
+              } else {
+                return resolve(insertObj);
+              }
+            }).catch(error => {
+                logger.error({ msg: 'Nomination update failed', error, additionalInfo: { nomDetails: insertObj } }, {});
+                return reject({ msg: 'Nomination update failed',additionalInfo: { nomDetails: insertObj }});
+              });
+          } else {
+            model.nomination.create(insertObj).then(res => {
+              console.log("nomination successfully written to DB", res);
+              return resolve(insertObj);
+            }).catch(err => {
+              logger.error({ msg: 'Nomination creation failed', error, additionalInfo: { nomDetails: insertObj } }, {});
+              return reject({ msg: 'Nomination creation failed',additionalInfo: { nomDetails: insertObj }});
             });
-        } else {
-          model.nomination.create(insertObj).then(res => {
-            console.log("nomination successfully written to DB", res);
-          }).catch(err => {
-            console.log("Error adding nomination to db", err);
-          });
-        }
-    });
-  }
+          }
+      });
+    } else {
+      return reject({ msg: 'Nomination update failed - OrgId is blank'});
+    }
+  });
 }
 
-function getUserRegistryDetails(userId) {
+
+
+function getUserRegistryDetails(userId, reqHeaders) {
+  const userRegData = {};
+  userRegData['User'] = {};
+  userRegData['Error'] = null;
+  let tempMapping = [];
+  let userRequest = {
+    entityType: ["User"],
+    filters: {
+      userId: {
+        eq: userId
+      }
+    }
+  }
   return new Promise((resolve, reject) => {
-    const retObj = { error: false, res: {} };
-    async.waterfall([
-      function (callback1) {
-        getUserDetailsFromRegistry(userId, callback1)
-      },
-      function (user, callback2) {
-        if (!user || !_.get(user, 'osid')) {
-          callback2(null, {}, {})
+      searchRegistry(userRequest, reqHeaders).then((res1)=> {
+        if (res1 && res1.status == 200) {
+          if (res1.data.result.User.length > 0) {
+            userRegData['User'] = res1.data.result.User[0];
+            let mapRequest = {
+              entityType: ["User_Org"],
+              filters: {
+                userId: {
+                  eq: userRegData.User.osid
+                }
+              }
+            }
+            searchRegistry(mapRequest, reqHeaders).then((res2)=> {
+              if (res2 && res2.status == 200) {
+                tempMapping = res2.data.result.User_Org
+                if (tempMapping.length > 0) {
+                  const orgIds = _.map(tempMapping, 'orgId');
+                  let orgRequest = {
+                    entityType: ["Org"],
+                    filters: {
+                      osid: {
+                        or: orgIds
+                      }
+                    }
+                  }
+                  searchRegistry(orgRequest, reqHeaders).then((res3)=> {
+                    if (res3 && res3.status == 200) {
+                      userRegData['Org'] = res3.data.result.Org
+                      userRegData['User_Org'] = tempMapping.filter((mapObj) => {
+                        return  _.find(userRegData['Org'], {'osid' : mapObj.orgId});
+                      });
+                      return resolve(userRegData);
+                    } else {
+                      userRegData['Error'] = {"error": true, "msg": "OS search error: Error while searching OsOrg for" + userId + ":" + userRegData.User.osid};
+                      return reject(userRegData);
+                    }
+                  }, (res3Error)=> {
+                    userRegData['Error'] = res3Error || {"error": true, "msg": "OS search error: Error while searching OsOrg for" + userId + ":" + userRegData.User.osid};
+                    return reject(userRegData);
+                  }).catch((error)=>{
+                    userRegData['Error'] = error || {"error": true, "msg": "OS search error: Error while searching OsOrg for" + userId + ":" + userRegData.User.osid};;
+                    return reject(userRegData);
+                  });
+                } else {
+                  return resolve(userRegData);
+                }
+              } else {
+                userRegData['Error'] = {"error": true, "msg": "OS search error: Error while searching OsUserOrg for " + userId + ":" + userRegData.User.osid};
+                return reject(userRegData);
+              }
+            },
+            (res2error)=> {
+              userRegData['Error'] = res2error || {"error": true, "msg": "OS search error: Error while searching OsUserOrg for " + userId + ":" + userRegData.User.osid};
+              return reject(userRegData);
+            }).catch((error)=> {
+              userRegData['Error'] = error || {"error": true, "msg": "OS search error: Error while searching OsUserOrg for " + userId + ":" + userRegData.User.osid};
+              return reject(userRegData);
+            });
+          } else {
+            return resolve(userRegData);
+          }
         } else {
-          getUserOrgMappingDetailFromRegistry(user, callback2);
+          userRegData['Error'] = {"error": true, "msg": "OS search error : Error while searching OsUser for " + userId};
+          return reject(userRegData);
         }
-      },
-      function (user, userOrgMapDetails, callback3) {
-        if (_.isEmpty(userOrgMapDetails)) {
-          callback3(null, user, {}, {})
-        } else {
-          getOrgDetailsFromRegistry(user, userOrgMapDetails, callback3)
-        }
-      },
-      function (user, userOrgMapDetails, orgInfoLists, callback4) {
-        if (_.isEmpty(orgInfoLists)) {
-          callback4(null, user)
-        } else {
-          createUserRecords(user, userOrgMapDetails, orgInfoLists, callback4)
-        }
-      }
-    ], function (err, res) {
-      if (err) {
-        logger.error({ msg: 'Error fetching opensaberprofile for user', err, additionalInfo: { user: userId } }, {});
-        console.log({ msg: 'Error fetching opensaberprofile for user', err, additionalInfo: { user: userId } });
-        retObj.error = true;
-        retObj.result = err;
-        return reject(retObj);
-      } else {
-        retObj.res = res;
-        return resolve(retObj);
-      }
-    });
+      }, (res1Error) => {
+        userRegData['Error'] = res1Error || {"error": true, "msg": "OS search error : Error while searching OsUser for " + userId};;
+        return reject(userRegData);
+      }).catch((error) => {
+        userRegData['Error'] = error || {"error": true, "msg": "OS search error : Error while searching OsUser for " + userId};;
+        return reject(userRegData);
+      });
   });
 }
 
@@ -1590,6 +1747,21 @@ function getUsersDetails(req, userList) {
   });
 }
 
+  function searchRegistry(request, reqHeaders) {
+    const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
+    const reqData = {
+      "id": "open-saber.registry.search",
+      "request": request
+    }
+
+    return axios({
+      method: 'post',
+      url: url,
+      headers: reqHeaders,
+      data: reqData
+    });
+  }
+
 function updateRegistry(request, reqHeaders) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/update`;
   const reqData = {
@@ -1604,6 +1776,19 @@ function updateRegistry(request, reqHeaders) {
   }));
 }
 
+function deleteRegistry(request, reqHeaders) {
+  const url = `${envVariables.OPENSABER_SERVICE_URL}/delete`;
+  const reqData = {
+    "id": "open-saber.registry.delete",
+    "request": request
+  }
+  return from(axios({
+    method: 'post',
+    url: url,
+    headers: reqHeaders,
+    data: reqData
+  }));
+}
 function getOrgDetails(req, orgList) {
   const url = `${envVariables.OPENSABER_SERVICE_URL}/search`;
   const reqData = {
@@ -1632,8 +1817,7 @@ function getOrgDetails(req, orgList) {
   });
 }
 
-function getUsersDetailsById(req, response) {
-
+async function getUsersDetailsById(req, response) {
   const dikshaUserId = req.params.user_id
   async.waterfall([
     function (callback1) {
@@ -2367,34 +2551,37 @@ function addorUpdateUserOrgMapping(userProfile, filterRootOrg, orgOsid, userOsid
   let uRoles = [];
   const userOrgRoles = getUserOrganisationRoles(userProfile, filterRootOrg);
   const consoleLogs = {};
-  consoleLogs.userId = userProfile.identifier;
-  consoleLogs.firstName = userProfile.firstName;
-  consoleLogs.userRoles = userOrgRoles;
+  consoleLogs[userProfile.identifier] = {};
+  consoleLogs[userProfile.identifier]['userName'] = userProfile.userName;
+  consoleLogs[userProfile.identifier]['identifier'] = userProfile.identifier;
+  consoleLogs[userProfile.identifier]['email'] = userProfile.email;
+  consoleLogs[userProfile.identifier]['userRoles'] = userOrgRoles;
 
   // Check if user is already part of the organisation
-  if (!_.isEmpty(_.get(userRegData, 'res.orgs'))) {
-    _.forEach(_.get(userRegData, 'res.orgs'), mappingObj => {
+  if (!_.isEmpty(_.get(userRegData, 'User_Org'))) {
+    _.forEach(_.get(userRegData, 'User_Org'), mappingObj => {
       if (mappingObj.roles.includes('user') || mappingObj.roles.includes('admin')) {
-        contribOrgs.push(mappingObj.osid);
+        contribOrgs.push(mappingObj.orgId);
       }
       if (mappingObj.roles.includes('sourcing_reviewer') || mappingObj.roles.includes('sourcing_admin')) {
-        sourcingOrgs.push(mappingObj.osid);
+        sourcingOrgs.push(mappingObj.orgId);
       }
 
-      if (mappingObj.osid == orgOsid) {
-        uRoles = mappingObj.roles;
-        if (userOrgRoles.includes('CONTENT_REVIEWER') && !(mappingObj.roles.includes('sourcing_reviewer') || mappingObj.roles.includes('sourcing_admin'))) {
-          uRoles.push('sourcing_reviewer');
-          updateOsid = mappingObj.userOrgOsid;
-        } else if (!userOrgRoles.includes('CONTENT_REVIEWER') &&  !(mappingObj.roles.includes('user') || mappingObj.roles.includes('admin'))) {
-          updateOsid = mappingObj.userOrgOsid;
+      if (mappingObj.orgId == orgOsid) {
+        updateOsid = mappingObj.osid;
+        if (userOrgRoles.includes('ORG_ADMIN')) {
+          uRoles.push('admin');
+        } else {
           uRoles.push('user');
+        }
+        if (userOrgRoles.includes('CONTENT_REVIEWER')) {
+          uRoles.push('sourcing_reviewer');
         }
       }
     });
   }
-  consoleLogs.contribOrgs = contribOrgs;
-  consoleLogs.sourcingOrgs = sourcingOrgs;
+  consoleLogs[userProfile.identifier]['contribOrgs'] = contribOrgs;
+  consoleLogs[userProfile.identifier]['sourcingOrgs'] = sourcingOrgs;
 
   if (updateOsid) {
     let regReq = {
@@ -2408,25 +2595,25 @@ function addorUpdateUserOrgMapping(userProfile, filterRootOrg, orgOsid, userOsid
         }
       }
     }
-    consoleLogs.updatingUserOrgMapping = {};
-    consoleLogs.updatingUserOrgMapping['mappingOsid'] = updateOsid;
+    consoleLogs[userProfile.identifier]['updatingUserOrgMapping'] = {};
+    consoleLogs[userProfile.identifier]['updatingUserOrgMapping']['mappingOsid'] = updateOsid;
 
     registryService.updateRecord(regReq, (mapErr, mapRes) => {
-      if (mapRes && mapRes.status == 200 && _.get(mapRes.data, 'params.status' == "SUCCESSFUL")) {
-        consoleLogs.updatingUserOrgMapping['mapped'] = true;
-        console.log(consoleLogs);
+      if (mapRes && mapRes.status == 200 && _.get(mapRes.data, 'params.status' == "SUCCESSFULL")) {
+        consoleLogs[userProfile.identifier]['updatingUserOrgMapping']['mapped'] = true;
+        console.log(consoleLogs[userProfile.identifier]);
         callbackFunction(null, updateOsid);
       }
       else {
-        consoleLogs.updatingUserOrgMapping['mapped'] = false;
-        consoleLogs.updatingUserOrgMapping['error'] = mapErr;
-        console.log(consoleLogs);
+        consoleLogs[userProfile.identifier]['updatingUserOrgMapping']['mapped'] = false;
+        consoleLogs[userProfile.identifier]['updatingUserOrgMapping']['error'] = mapErr;
+        console.log(consoleLogs[userProfile.identifier]);
         callbackFunction(mapErr, updateOsid);
         logger.error("Encountered some error while updating data")
       }
     });
-  } else if (_.isEmpty(_.get(userRegData, 'res.orgs')) || (!userOrgRoles.includes('CONTENT_REVIEWER') && contribOrgs.length == 0) ||
-  (userOrgRoles.includes('CONTENT_REVIEWER') && sourcingOrgs.length == 0) || (sourcingOrgs.length > 0 && !sourcingOrgs.includes(orgOsid))) {
+  } else if (_.isEmpty(_.get(userRegData, 'User_Org')) || (contribOrgs.length == 0) ||
+  (userOrgRoles.includes('CONTENT_REVIEWER') && (sourcingOrgs.length == 0 || (sourcingOrgs.length > 0 && !sourcingOrgs.includes(orgOsid))))) {
     let regReq = {
       body: {
         id: "open-saber.registry.create",
@@ -2434,32 +2621,41 @@ function addorUpdateUserOrgMapping(userProfile, filterRootOrg, orgOsid, userOsid
           User_Org: {
             userId: userOsid,
             orgId: orgOsid,
-            roles: ["user"],
+            roles: [],
           }
         }
       }
     }
-    consoleLogs.creatingUserOrgMapping = {};
-    if (userOrgRoles.includes('CONTENT_REVIEWER')) {
+    consoleLogs[userProfile.identifier]['creatingUserOrgMapping'] = {};
+    if (contribOrgs.length === 0) {
+      if (userOrgRoles.includes('ORG_ADMIN')) {
+        regReq.body.request.User_Org.roles.push("admin");
+      } else {
+        regReq.body.request.User_Org.roles.push("user");
+      }
+    }
+
+    if (userOrgRoles.includes('CONTENT_REVIEWER') &&
+    (sourcingOrgs.length == 0 || (sourcingOrgs.length > 0 && !sourcingOrgs.includes(orgOsid)))) {
       regReq.body.request.User_Org.roles.push("sourcing_reviewer");
     }
 
     registryService.addRecord(regReq, (mapErr, mapRes) => {
       if (mapRes && mapRes.status == 200 && _.get(mapRes.data, 'result') && _.get(mapRes.data, 'result.User_Org.osid')) {
-        consoleLogs.creatingUserOrgMapping['mappingOsid'] = _.get(mapRes.data, 'result.User_Org.osid');
-        consoleLogs.creatingUserOrgMapping['mapped'] = true;
-        console.log(consoleLogs);
+        consoleLogs[userProfile.identifier]['creatingUserOrgMapping']['mappingOsid'] = _.get(mapRes.data, 'result.User_Org.osid');
+        consoleLogs[userProfile.identifier]['creatingUserOrgMapping']['mapped'] = true;
+        console.log(consoleLogs[userProfile.identifier]);
         callbackFunction(null, _.get(mapRes.data, 'result.User_Org.osid'));
       }
       else {
-        consoleLogs.creatingUserOrgMapping['mapped'] = false;
-        consoleLogs.creatingUserOrgMapping['error'] = mapErr;
-        console.log(consoleLogs);
+        consoleLogs[userProfile.identifier]['creatingUserOrgMapping']['mapped'] = false;
+        consoleLogs[userProfile.identifier]['creatingUserOrgMapping']['error'] = mapErr;
+        console.log(consoleLogs[userProfile.identifier]);
         callbackFunction(mapErr, mapRes);
       }
     });
   } else {
-    console.log(consoleLogs);
+    console.log(consoleLogs[userProfile.identifier]);
     callbackFunction(null, null);
   }
 }
@@ -2478,12 +2674,18 @@ function mapusersToContribOrg(orgOsid, filters, reqHeaders) {
         return resolve(tempRes);
       }
       tempRes.count = sourcingOrgUsers.length;
-      _.forEach(sourcingOrgUsers, (userProfile) => {
-          let re = {};
+      //_.forEach(sourcingOrgUsers, (userProfile) => {
+        for (const userProfile of sourcingOrgUsers) {
+          let re = {
+            identifier: '',
+            User_osid: '',
+            Org_osid: '',
+            User_Org_osid: '',
+            error: {}
+          };
           re.identifier = userProfile.identifier;
-          getUserRegistryDetails(userProfile.identifier).then((userRegData) => {
-          if (!userRegData.error) {
-            let userOsid = _.get(userRegData, 'res.osid');
+          getUserRegistryDetails(userProfile.identifier, reqHeaders).then((userRegData) => {
+            let userOsid = _.get(userRegData, 'User.osid');
             if (!userOsid) {
               let regReq = {
                 body: {
@@ -2502,21 +2704,18 @@ function mapusersToContribOrg(orgOsid, filters, reqHeaders) {
               registryService.addRecord(regReq, (userErr, userRes) => {
                 if (userRes && userRes.status == 200 && _.get(userRes.data, 'result') && _.get(userRes.data, 'result.User.osid')) {
                   userOsid = _.get(userRes.data, 'result.User.osid');
-                  re.userOsid = userOsid;
+                  re.User_osid = userOsid;
                   addorUpdateUserOrgMapping(userProfile, filterRootOrg, orgOsid, userOsid, userRegData, function(err, res){
                     if (!err) {
-                      re.orgOsid = orgOsid;
-                      re.userOrgOsid = res;
+                      re.Org_osid = orgOsid;
+                      re.User_Org_osid = res;
                       tempRes.result.push(re);
                       if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
                         return resolve(tempRes);
                       }
                     } else {
-                      re.orgOsid = '';
-                      re.userOrgOsid = '';
                       tempRes.result.push(re);
                       console.log(err);
-                      logger.error({ msg: 'Error- while adding adding user to org details',err, additionalInfo: { userId: userProfile.identifier, userOsid: userOsid,orgOsid: orgOsid  } }, {});
                       if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
                         return resolve(tempRes);
                       }
@@ -2524,48 +2723,45 @@ function mapusersToContribOrg(orgOsid, filters, reqHeaders) {
                   })
                 }
                 else {
-                  console.log(userRegData.error);
-                  logger.error({ msg: 'Error- while adding user reg details', additionalInfo: { userId: userProfile.identifier } }, {});
+                  console.log(userErr);
+                  re.error = { msg: 'Error- adding user into Registry ' + userErr};
+                  tempRes.result.push(re);
+                  if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
+                    return resolve(tempRes);
+                  }
                 }
               });
             } else {
-              re.userOsid = userOsid;
+              re.User_osid = userOsid;
               addorUpdateUserOrgMapping(userProfile, filterRootOrg, orgOsid, userOsid, userRegData, function(err, res){
                 if (!err) {
-                  re.orgOsid = orgOsid;
-                  re.userOrgOsid = res;
+                  re.Org_osid = orgOsid;
+                  re.User_Org_osid = res;
                   tempRes.result.push(re);
                   if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
                     return resolve(tempRes);
                   }
                 } else {
-                  re.orgOsid = '';
-                  re.userOrgOsid = '';
+                  re.error = err || {msg: 'Error- addorUpdateUserOrgMapping'};
                   tempRes.result.push(re);
                   console.log(err);
-                  logger.error({ msg: 'Error- while adding adding user to org details',err, additionalInfo: { userId: userProfile.identifier, userOsid: userOsid,orgOsid: orgOsid  } }, {});
                   if (checkIfReturnResult(tempRes.result.length, tempRes.result.count)) {
                     return resolve(tempRes);
                   }
                 }
               })
             }
-          } else {
-            console.log(userRegData.error);
-            logger.error({ msg: 'Error- while getting reg details', additionalInfo: { userId: userProfile.identifier } }, {});
-          }
         }).catch(function (err) {
-          console.log(err);
-          re.userOsid = '';
+          re.error = err || { msg: 'Error- getUserRegistryDetails '};
           tempRes.result.push(re);
           if (checkIfReturnResult(tempRes.result.length, tempRes.count)) {
             return resolve(tempRes);
           }
         });
-      });
+      }
     }, (err) => {
       tempRes.error = true;
-      tempRes.result = "Error in getting org Users" + err;
+      tempRes.result = "Error in getting org Users " + err;
       return reject(tempRes);
     });
   });
@@ -2613,15 +2809,15 @@ function onBeforeMigratingUsers(request) {
             mapusersToContribOrg(orgOsid, filters, request.headers).then((tempRes)=> {
               logger.debug({ msg: 'Users added to the contrib org',
                 additionalInfo: {
-                rootorg_id: programDetails.rootorg_id,
-                orgOsid: _.get(userReg,'Org.osid'),
+                rootorg_id: data.request.rootorg_id,
+                orgOsid: orgOsid,
                 res:tempRes
                 }
               }, {});
             }).catch((error) => {
               console.log(error)
               logger.error({ msg: 'Error- while adding users to contrib org',
-              additionalInfo: { rootorg_id: programDetails.rootorg_id, orgOsid: _.get(userReg,'Org.osid') } }, {});
+              additionalInfo: { rootorg_id: data.request.rootorg_id, orgOsid: orgOsid } }, {});
             });
           }
         }
@@ -2631,6 +2827,7 @@ function onBeforeMigratingUsers(request) {
     }
   })
 }
+
 function syncUsersToRegistry(req, response) {
   var rspObj = req.rspObj;
   const reqHeaders = req.headers;
