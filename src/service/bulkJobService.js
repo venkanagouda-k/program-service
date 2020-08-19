@@ -29,9 +29,8 @@ async function createJob(req, response) {
     return response.status(200).send(successResponse(rspObj))
   }
   catch(error) {
-    const sequelizeErrorMessage = _.first(_.get(error, 'errors'));
     rspObj.errCode = bulkJobRequestMessages.CREATE.FAILED_CODE;
-    rspObj.errMsg = sequelizeErrorMessage.message || error.message || bulkJobRequestMessages.CREATE.FAILED_MESSAGE;
+    rspObj.errMsg =  error.message || bulkJobRequestMessages.CREATE.FAILED_MESSAGE;
     rspObj.responseCode = responseCode.SERVER_ERROR;
     loggerError('Error while create a new bulk_job_request', rspObj.errCode, rspObj.errMsg, rspObj.responseCode, error, req)
     return response.status(500).send(errorResponse(rspObj));
