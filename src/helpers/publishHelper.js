@@ -30,6 +30,7 @@ function getPublishContentEvent(metadata, textbookId, units) {
       "unitIdentifiers",
       "itemSets"
     ]);
+    metadata.processId = uuid();
     var ets = Date.now();
     var dataObj = {
       'eid': 'BE_JOB_REQUEST',
