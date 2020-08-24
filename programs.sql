@@ -186,3 +186,5 @@ CREATE TABLE "public"."bulk_job_request" (
     "expiration" timestamp,
     PRIMARY KEY ("id","process_id")
 );
+-- Indices
+CREATE INDEX "pk_bulk_job_request_createdon" ON "public"."bulk_job_request" USING BTREE (createdon DESC);
