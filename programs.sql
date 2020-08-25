@@ -158,3 +158,33 @@ CREATE INDEX "idx_nomination_userid" ON "public"."nomination" (user_id);
 CREATE INDEX "idx_nomination_programid" ON "public"."nomination" USING BTREE (program_id);
 ALTER TABLE program ALTER COLUMN config TYPE jsonb USING config::jsonb;
 
+-- Sprint 14
+
+-- Sequence and defined type
+CREATE SEQUENCE IF NOT EXISTS bulk_job_id_seq;
+DROP TYPE IF EXISTS "public"."bulk_job_status";
+CREATE TYPE "public"."bulk_job_status" AS ENUM ('processing', 'completed', 'failed');
+DROP TYPE IF EXISTS "public"."bulk_job_type";
+CREATE TYPE "public"."bulk_job_type" AS ENUM ('bulk_upload', 'bulk_approval');
+-- Table Definition
+CREATE TABLE "public"."bulk_job_request" (
+    "id" int4 NOT NULL DEFAULT nextval('bulk_job_id_seq'::regclass),
+    "process_id" varchar NOT NULL UNIQUE,
+    "program_id" varchar NOT NULL,
+    "collection_id" varchar,
+    "org_id" varchar,
+    "status" "public"."bulk_job_status",
+    "type" "public"."bulk_job_type",
+    "overall_stats" jsonb,
+    "data" jsonb,
+    "err_message" text,
+    "createdby" varchar,
+    "updatedby" varchar,
+    "createdon" timestamptz DEFAULT timezone('utc'::text, now()),
+    "updatedon" timestamptz NOT NULL DEFAULT timezone('utc'::text, now()),
+    "completedon" timestamp,
+    "expiration" timestamp,
+    PRIMARY KEY ("id","process_id")
+);
+-- Indices
+CREATE INDEX "pk_bulk_job_request_createdon" ON "public"."bulk_job_request" USING BTREE (createdon DESC);
