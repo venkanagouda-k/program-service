@@ -636,6 +636,8 @@ class ProgramServiceHelper {
                           rspObj.responseCode = 'OK';
                           cb(null, rspObj);
                         }, error => {
+                          console.log('Error updating hierarchy for collections')
+                          console.log(error)
                           errObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
                           errObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
                           errObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
@@ -643,6 +645,8 @@ class ProgramServiceHelper {
                           cb(errObj, null);
                         })
                     }, error => {
+                      console.log('Error creating collection')
+                      console.log(error)
                       errObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_CODE;
                       errObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_MESSAGE;
                       errObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
@@ -660,6 +664,7 @@ class ProgramServiceHelper {
           }
         },
         (error) => {
+          console.log(error)
           errObj.errCode = programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_CODE;
           errObj.errMsg = error.message || programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_MESSAGE;
           errObj.responseCode = _.get(error, 'response.statusText') || responseCode.SERVER_ERROR
