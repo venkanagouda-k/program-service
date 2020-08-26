@@ -317,7 +317,6 @@ class ProgramServiceHelper {
               item.children = children;
             });
           }
-
           const aggregations = contribution.data && contribution.data.result && contribution.data.result.aggregations;
           const contentCount = this.approvedContentCount(hierarchyArr, program_id, aggregations);
           resolve(contentCount);
@@ -341,18 +340,15 @@ class ProgramServiceHelper {
       this.collectionData['totalContentsReviewed'] = (_.union(this.acceptedContents, this.rejectedContents)).length;
       this.collectionData['contributionsReceived'] = 0;
 
-      // Count of contribution
-      if (contributionResponse.length && contributionResponse[0].name === 'collectionId'
-      && contributionResponse[0].values.length) {
-        const statusCount = _.find(contributionResponse[0].values, {name: collection.identifier});
-        if (statusCount && statusCount.aggregations && statusCount.aggregations.length) {
-          _.forEach(statusCount.aggregations[0].values, (obj) => {
-            if (obj.name === 'live') {
-              this.collectionData['contributionsReceived'] = this.collectionData['contributionsReceived'] + obj.count;
-            }
-          });
-        }
-      }
+      _.forEach(collection.children, (unit) => {
+        _.forEach(unit.children, (chapter) => {
+          if (chapter.status === 'Live'
+            && chapter.mimeType !== 'application/vnd.ekstep.content-collection'
+            && chapter.contentType !== 'Asset') {
+              this.collectionData['contributionsReceived']++;
+          }
+        });
+      });
 
       this.collectionLevelCount(collection);
       return this.collectionData
