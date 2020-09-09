@@ -321,7 +321,8 @@ exports.RESPONSE_CODE = {
   RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
   PROCESS_NOT_FOUND: 'PROCESS_NOT_FOUND',
   UNAUTHORIZED_ACCESS: 'UNAUTHORIZED_ACCESS',
-  PARTIAL_SUCCESS: 'PARTIAL_SUCCESS'
+  PARTIAL_SUCCESS: 'PARTIAL_SUCCESS',
+  CONFIGURATION_KEY_NOT_FOUND: 'KEY_OR_ID_NOT_FOUND'
 }
 
 exports.API_VERSION = {
@@ -797,6 +798,22 @@ exports.CONTENT_TYPE = {
 }
 
 exports.CONFIGURATION = {
+  CREATE: {
+    MISSING_CODE: 'ERR_CREATING_CONFIGURATION',
+    MISSING_MESSAGE: 'Required fields like key, value, status to create configuration are missing',
+    FAILED_CODE: 'ERR_CREATE_CONFIGURATION_FAILED',
+    FAILED_MESSAGE: 'Unable to create the configuration'
+  },
+  UPDATE: {
+    MISSING_CODE: 'ERR_UPDATING_CONFIGURATION',
+    MISSING_MESSAGE: 'Required fields like key to update configuration are missing',
+    FAILED_CODE: 'ERR_UPDATE_CONFIGURATION_FAILED',
+    FAILED_MESSAGE: 'Unable to update the configuration',
+    PROCESS_ID_MISSING_CODE: 'ERR_UPDATING_CONFIGURATION',
+    PROCESS_ID_FAILED_MESSAGE: 'key not found',
+    UPDATE_FAILED_CODE: 'ERR_UPDATING_CONFIGURATION',
+    UPDATE_FAILED_MESSAGE: 'Unable to update configuration for the requested key'
+  },
   SEARCH: {
     MISSING_CODE: 'ERR_SEARCHING_CONFIGURATION',
     MISSING_MESSAGE: 'Required fields like key, status to search for configuration are missing',
@@ -842,5 +859,15 @@ exports.BULK_JOB_REQUEST = {
     MISSING_MESSAGE: 'Required fields like filters are missing',
     FAILED_CODE: 'ERROR_SEARCHING_BULK_JOB_REQUEST',
     FAILED_MESSAGE: 'Unable to search for bulk job'
+  }
+}
+
+
+exports.PROGRAM_FEED = {
+  SEARCH: {
+    MISSING_CODE: 'ERR_SEARCHING_PROGRAM_FEED',
+    MISSING_MESSAGE: 'Required fields like <> are missing',
+    FAILED_CODE: 'ERROR_SEARCHING_PROGRAM_FEED',
+    FAILED_MESSAGE: 'Unable to search for program latest updates'
   }
 }

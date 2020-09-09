@@ -1,8 +1,9 @@
-const redis       = require('redis');
-const logger      = require('sb_logger_util_v2');
+const redis = require('redis');
+const bluebird = require('bluebird');
+const logger = require('sb_logger_util_v2');
 const envVariables = require("../envVariables");
 var redisClient;
-
+bluebird.promisifyAll(redis);
 class RedisManager {
     constructor() {
         this.redisClient = redis.createClient({
@@ -91,6 +92,10 @@ class RedisManager {
                 return callback(null, cacheData);
             }
         });
+    }
+
+    getClient() {
+        return this.redisClient;
     }
 
 }
