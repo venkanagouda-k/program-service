@@ -8,6 +8,8 @@
   "dependencies": {
     "@project-sunbird/telemetry-sdk": "0.0.24",
     "axios": "^0.19.2",
+    "better-config": "^1.2.3",
+    "bluebird": "^3.7.2",
     "cassandra-driver": "^4.4.0",
     "compression": "^1.7.4",
     "cookie-parser": "~1.4.4",
