@@ -106,6 +106,7 @@ INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('smsNomi
 INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('smsContentRequestedChanges', 'VidyaDaan: Your Content $contentName has not been accepted by your organization upon review. Please login to $url for details.', 'active');
 INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('smsContentReject', 'VidyaDaan: Your Content $contentName has not been approved by the project owner. Please login to $url for details.', 'active');
 INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('smsContentAccept', 'VidyaDaan: Your Content $contentName for the project $projectName has been approved by the project owner.', 'active');
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('smsContentAcceptWithChanges', 'VidyaDaan: Your Content $contentName for the project $projectName has been approved by the project owner with few changes.', 'active');
 INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('overrideMetaData', '[{"code":"name","dataType":"text","editable":true},{"code":"learningOutcome","dataType":"list","editable":true},{"code":"attributions","dataType":"list","editable":false},{"code":"copyright","dataType":"text","editable":false},{"code":"creator","dataType":"text","editable":false},{"code":"license","dataType":"list","editable":false},{"code":"contentPolicyCheck","dataType":"boolean","editable":false}]', 'active');
 
 ### DIKSHA EMAIL TemplATES
