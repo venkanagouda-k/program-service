@@ -18,6 +18,7 @@ const searchNominations = (query) => {
   return model.nomination.findAll({
     where: {
       program_id: query.program_id,
+      status: query.status,
       createdon:{
         [Op.gte]: moment().subtract(query.days, 'days').toDate()
       }
