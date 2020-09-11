@@ -89,7 +89,7 @@ const searchForUpdates = async (req, response) => {
         }
         const newNominations = await searchNominations(nominationSearchRequest);
         console.log(`newNominations - ${JSON.stringify(newNominations)}`);
-        if(newNominations) {
+        if(newNominations.length) {
           const nominationsByProgram = _.groupBy(_.map(newNominations, 'dataValues'), 'program_id');
           programByNominationCount = generateUpdatesMap(nominationsByProgram, 'nominationCount')
         } else {
@@ -108,8 +108,9 @@ const searchForUpdates = async (req, response) => {
         const newContributions = await searchContributions(contributionSearchRequest, req.headers);
         const contents = _.get(newContributions, 'data.result.content');
         console.log(`Contents - ${JSON.stringify(contents)}`)
-        if(contents) {
-          const notActedUponContents = getActionPendingContents(contents, req.headers);
+        const notActedUponContents = await getActionPendingContents(contents, req.headers);
+        console.log(`notActedUponContents - ${JSON.stringify(notActedUponContents)}`);
+        if(notActedUponContents && notActedUponContents.length) {
           const contentsByProgram = _.groupBy(notActedUponContents, 'programId');
           console.log(`contentsByProgram- ${JSON.stringify(contentsByProgram)}`);
           programByContentCount = generateUpdatesMap(contentsByProgram, 'contributionCount');
