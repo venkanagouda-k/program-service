@@ -112,7 +112,7 @@ const searchForUpdates = async (req, response) => {
         console.log(programByContentCount);
       }
       const newUpdates = _.merge(programByNominationCount, programByContentCount);
-      console.log(newUpdates)
+      console.log(`New updates -  ${newUpdates}`)
       const existingUpdates = await findAll(channelPrograms, stripRedisKey);
       const mergedUpdates = _.merge(existingUpdates, newUpdates);
       const result = await insertAndSetExpiry(newUpdates, channel, false);
