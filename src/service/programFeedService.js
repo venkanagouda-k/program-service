@@ -61,8 +61,8 @@ const searchForUpdates = async (req, response) => {
         const newContributions = await searchContributions(contributionSearchRequest, req.headers);
         const contents = _.get(newContributions, 'data.result.content');
         console.log(`newContributions - ${JSON.stringify(contents)}`)
-        if(contents && contents.length){
-          const notActedUponContents = await getActionPendingContents(contents, req.headers);
+        const notActedUponContents = await getActionPendingContents(contents, req.headers);
+        if(notActedUponContents && notActedUponContents.length){
           const contentsByProgram = _.groupBy(notActedUponContents, 'programId');
           programByContentCount = generateUpdatesMap(contentsByProgram, 'contributionCount');
         } else {
