@@ -61,8 +61,8 @@ const searchForUpdates = async (req, response) => {
         const newContributions = await searchContributions(contributionSearchRequest, req.headers);
         const contents = _.get(newContributions, 'data.result.content');
         console.log(`newContributions - ${JSON.stringify(contents)}`)
-        if(contents && contents.length){
-          const notActedUponContents = await getActionPendingContents(contents, req.headers);
+        const notActedUponContents = await getActionPendingContents(contents, req.headers);
+        if(notActedUponContents && notActedUponContents.length){
           const contentsByProgram = _.groupBy(notActedUponContents, 'programId');
           programByContentCount = generateUpdatesMap(contentsByProgram, 'contributionCount');
         } else {
@@ -79,6 +79,8 @@ const searchForUpdates = async (req, response) => {
     } else if(channelPrograms.length && (nonExistingNominations.length || nonExistingContributions.length)) {
       let programByNominationCount = {};
       let programByContentCount = {};
+      console.log(`nonExistingNominations - ${nonExistingNominations}`)
+      console.log(`nonExistingContributions - ${nonExistingContributions}`)
       if(nonExistingNominations.length) {
         const nominationSearchRequest = {
           program_id: nonExistingNominations,
@@ -86,13 +88,16 @@ const searchForUpdates = async (req, response) => {
           days: numberOfDays || DEFAULT_FEED_DAYS
         }
         const newNominations = await searchNominations(nominationSearchRequest);
-        if(newNominations) {
+        console.log(`newNominations - ${JSON.stringify(newNominations)}`);
+        if(newNominations.length) {
           const nominationsByProgram = _.groupBy(_.map(newNominations, 'dataValues'), 'program_id');
           programByNominationCount = generateUpdatesMap(nominationsByProgram, 'nominationCount')
         } else {
           programByNominationCount = generateUpdatesMap(nonExistingNominations, 'nominationCount');
         }
         console.log(programByNominationCount);
+        console.log(`programByNominationCount- ${JSON.stringify(programByNominationCount)}`);
+
       }
       if(nonExistingContributions.length) {
         const contributionSearchRequest = {
@@ -102,17 +107,20 @@ const searchForUpdates = async (req, response) => {
         }
         const newContributions = await searchContributions(contributionSearchRequest, req.headers);
         const contents = _.get(newContributions, 'data.result.content');
-        if(contents) {
-          const notActedUponContents = getActionPendingContents(contents, req.headers);
+        console.log(`Contents - ${JSON.stringify(contents)}`)
+        const notActedUponContents = await getActionPendingContents(contents, req.headers);
+        console.log(`notActedUponContents - ${JSON.stringify(notActedUponContents)}`);
+        if(notActedUponContents && notActedUponContents.length) {
           const contentsByProgram = _.groupBy(notActedUponContents, 'programId');
+          console.log(`contentsByProgram- ${JSON.stringify(contentsByProgram)}`);
           programByContentCount = generateUpdatesMap(contentsByProgram, 'contributionCount');
         } else {
           programByContentCount = generateUpdatesMap(nonExistingContributions, 'contributionCount');
         }
-        console.log(programByContentCount);
+        console.log(`programByContentCount- ${JSON.stringify(programByContentCount)}`);
       }
       const newUpdates = _.merge(programByNominationCount, programByContentCount);
-      console.log(newUpdates)
+      console.log(`New updates -  ${JSON.stringify(newUpdates)}`)
       const existingUpdates = await findAll(channelPrograms, stripRedisKey);
       const mergedUpdates = _.merge(existingUpdates, newUpdates);
       const result = await insertAndSetExpiry(newUpdates, channel, false);
