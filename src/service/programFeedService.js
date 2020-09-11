@@ -43,6 +43,7 @@ const searchForUpdates = async (req, response) => {
           days: numberOfDays || DEFAULT_FEED_DAYS
         }
         const newNominations = await searchNominations(nominationSearchRequest);
+        console.log(`newNominations - ${JSON.stringify(newNominations)}`)
         if(newNominations.length) {
           const nominationsByProgram = _.groupBy(_.map(newNominations, 'dataValues'), 'program_id');
           programByNominationCount = generateUpdatesMap(nominationsByProgram, 'nominationCount');
@@ -58,6 +59,7 @@ const searchForUpdates = async (req, response) => {
           days: numberOfDays || DEFAULT_FEED_DAYS
         }
         const newContributions = await searchContributions(contributionSearchRequest, req.headers);
+        console.log(`newContributions - ${JSON.stringify(newContributions)}`)
         const contents = _.get(newContributions, 'data.result.content');
         if(contents && contents.length){
           const notActedUponContents = await getActionPendingContents(contents, req.headers);
