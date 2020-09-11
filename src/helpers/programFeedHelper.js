@@ -167,6 +167,7 @@ const insertAndSetExpiry = async (updates, channel, setChannelExpiry) => {
   if(!setChannelExpiry) {
     channelTTL = await client.ttlAsync(programUpdatesChannelKey);
   }
+  console.log(`updates- ${updates}`)
   _.forEach(_.keys(updates), (program) => {
     const programUpdateHashKey = keyGenerator.getProgramUpdatesHashKey(program);
     consolidatedCacheRequest.push({
