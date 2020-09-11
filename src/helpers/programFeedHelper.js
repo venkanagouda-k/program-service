@@ -175,6 +175,8 @@ const insertAndSetExpiry = async (updates, channel, setChannelExpiry) => {
     });
     setInsert.push(programUpdateHashKey);
   })
+  console.log(`programUpdatesChannelKey - ${programUpdatesChannelKey}`)
+  console.log(`setInsert - ${setInsert}`)
   let cacheArray = [..._.map(consolidatedCacheRequest, 'hashInsert'),
   ..._.map(consolidatedCacheRequest, 'hashExpire'),
   client.saddAsync(programUpdatesChannelKey, setInsert)]
