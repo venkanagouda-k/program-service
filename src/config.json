@@ -9,7 +9,7 @@
   "dataStores": {
     "redis": {
       "keyPrefix": "vdn",
-      "feedExpiry": 3600
+      "feedExpiry": 300
     }
   }
 }
