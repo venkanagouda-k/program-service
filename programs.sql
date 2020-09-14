@@ -192,3 +192,7 @@ CREATE TABLE "public"."bulk_job_request" (
 );
 -- Indices
 CREATE INDEX "pk_bulk_job_request_createdon" ON "public"."bulk_job_request" USING BTREE (createdon DESC);
+
+
+-- Sprint 15
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('projectFeedDays', 3, 'active');
