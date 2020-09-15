@@ -28,7 +28,9 @@ function getPublishContentEvent(metadata, textbookId, units) {
       "previewUrl",
       "streamingUrl",
       "unitIdentifiers",
-      "itemSets"
+      "itemSets",
+      "origin",
+      "originData"
     ]);
     metadata.processId = uuid();
     var ets = Date.now();
