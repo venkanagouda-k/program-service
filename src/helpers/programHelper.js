@@ -170,7 +170,8 @@ class ProgramServiceHelper {
           aggregations: [
             {
                 "l1": "collectionId",
-                "l2": "status"
+                "l2": "status",
+                "l3": "prevStatus",
             }
         ],
         limit: 0
@@ -232,6 +233,7 @@ class ProgramServiceHelper {
         result['Contributions Accepted'] = collection.acceptedContents ? collection.acceptedContents.length : 0;
         result['Contributions Rejected'] = collection.rejectedContents ? collection.rejectedContents.length : 0;
         result['Contributions Pending'] = 0;
+        result['Contributions corrections pending'] = 0;
 
         // count of sample contents
         if (sampleContentResponse.length) {
@@ -252,6 +254,11 @@ class ProgramServiceHelper {
                     // tslint:disable-next-line:max-line-length
                     result['Contributions Pending'] = result['Contributions Received'] - (result['Contributions Rejected'] + result['Contributions Accepted']);
                   }
+                  if (obj.name === 'draft') {
+                      const correctionPendingNode =  _.find(obj.aggregations[0].values, {name: "live"});
+                      result['Contributions corrections pending'] = correctionPendingNode.count;
+                      result['Contributions Received'] = result['Contributions Received'] + correctionPendingNode.count;
+                  }
                  });
               }
         }
@@ -260,7 +267,7 @@ class ProgramServiceHelper {
         if (nominationResponse.length) {
          _.forEach(nominationResponse, (obj) => {
            if (obj.collection_ids && _.includes(obj.collection_ids, collection.identifier) ) {
-              if (obj.status === 'Approved') {
+               if (obj.status === 'Approved') {
                 result['Nominations Accepted'] = result['Nominations Accepted'] + Number(obj.count);
               } else if (obj.status !== 'Initiated') {
                 result['Nominations Received'] = result['Nominations Received'] + Number(obj.count);
