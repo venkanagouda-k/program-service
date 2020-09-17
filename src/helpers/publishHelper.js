@@ -5,7 +5,7 @@ const axios = require("axios");
 const { from  } = require("rxjs");
 
 function getContentMetaData(contentId, reqHeaders){
-  const url = `${envVariables.baseURL}/action/content/v3/read/${contentId}`;
+  const url = `${envVariables.CONTENT_SERVICE_URL}content/v3/read/${contentId}`;
   const option = {
     url: url,
     method: "get",
@@ -28,8 +28,11 @@ function getPublishContentEvent(metadata, textbookId, units) {
       "previewUrl",
       "streamingUrl",
       "unitIdentifiers",
-      "itemSets"
+      "itemSets",
+      "origin",
+      "originData"
     ]);
+    metadata.processId = uuid();
     var ets = Date.now();
     var dataObj = {
       'eid': 'BE_JOB_REQUEST',

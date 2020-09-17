@@ -23,7 +23,7 @@ const envVariables = {
         dialect: process.env.sunbird_program_db_dialect || "postgres",
         logging: false,
         pool: {
-            max: process.env.sunbird_program_db_pool || 100
+            max: process.env.sunbird_program_db_pool ? Number(process.env.sunbird_program_db_pool) : 100
         }
     },
     telemetryConfig: {

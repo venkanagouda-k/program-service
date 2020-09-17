@@ -10,6 +10,8 @@
   "dependencies": {
     "@project-sunbird/telemetry-sdk": "0.0.24",
     "axios": "^0.19.2",
+    "better-config": "^1.2.3",
+    "bluebird": "^3.7.2",
     "cassandra-driver": "^4.4.0",
     "compression": "^1.7.4",
     "cookie-parser": "~1.4.4",
@@ -19,6 +21,7 @@
     "express-cassandra": "^2.3.2",
     "express-cluster": "0.0.5",
     "helmet": "^3.23.1",
+    "express-validator": "^6.6.1",
     "http-errors": "^1.6.3",
     "jade": "~1.11.0",
     "jsonwebtoken": "^8.5.1",

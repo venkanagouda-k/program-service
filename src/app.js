@@ -26,6 +26,9 @@ const createError = require('http-errors')
     app.use(express.json());
     app.use(bodyParser.urlencoded({ extended: false }));
     require('./routes/programRoutes')(app)
+    require('./routes/bulkJobRoutes')(app)
+    require('./routes/configurationRoutes')(app)
+    require('./routes/programFeedRoutes')(app)
     app.use(cookieParser());
     module.exports = app;
     return app;

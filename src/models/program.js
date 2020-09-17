@@ -48,7 +48,7 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING
     },
     config: {
-      type: DataTypes.TEXT,
+      type: DataTypes.JSON,
       allowNull: false
     },
     rolemapping: {

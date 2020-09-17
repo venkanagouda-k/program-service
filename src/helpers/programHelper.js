@@ -1,10 +1,18 @@
 const { forkJoin } = require("rxjs");
+const { from  } = require("rxjs");
 const _ = require("lodash");
 const envVariables = require("../envVariables");
 const axios = require("axios");
 const dateFormat = require('dateformat');
 const model = require('../models');
 const Sequelize = require('sequelize');
+const messageUtils = require('../service/messageUtil');
+const responseCode = messageUtils.RESPONSE_CODE;
+const programMessages = messageUtils.PROGRAM;
+const logger = require('sb_logger_util_v2');
+const { retry } = require("rxjs/operators");
+const HierarchyService = require('./updateHierarchy.helper');
+const hierarchyService = new HierarchyService()
 
 class ProgramServiceHelper {
   searchContent(programId, sampleContentCheck, reqHeaders) {
@@ -45,7 +53,6 @@ class ProgramServiceHelper {
     return axios(option);
   }
 
-
   setNominationSampleCounts(contentResult) {
     let nominationSampleCounts = {};
     let orgSampleUploads = _.filter(contentResult, contribution => !_.isEmpty(contribution.organisationId) && contribution.sampleContent);
@@ -72,7 +79,6 @@ class ProgramServiceHelper {
     });
     return newNominations;
   }
-
 
   getNominationSampleCounts(nomination, nominationSampleCounts) {
     // tslint:disable-next-line:max-line-length
@@ -118,6 +124,7 @@ class ProgramServiceHelper {
         request: queryFilter
       }
     };
+
     return axios(option);
   }
 
@@ -129,48 +136,49 @@ class ProgramServiceHelper {
          status: ['Draft'],
          contentType: 'Textbook'
        },
-       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents'],
+       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution', 'chapterCountForContribution'],
        limit: 1000
      };
     return this.searchWithProgramId(queryFilter, req);
-}
+  }
 
-getSampleContentWithProgramId(program_id, req) {
-  const queryFilter = {
-        filters: {
-          programId: program_id,
-          objectType: 'content',
-          status: ['Review', 'Draft'],
-          sampleContent: true
-        },
-        facets: [
-          'sampleContent', 'collectionId', 'status'
-      ],
-      limit: 0
-      };
-    return this.searchWithProgramId(queryFilter, req);
-}
+  getSampleContentWithProgramId(program_id, req) {
+    const queryFilter = {
+          filters: {
+            programId: program_id,
+            objectType: 'content',
+            status: ['Review', 'Draft'],
+            sampleContent: true
+          },
+          facets: [
+            'sampleContent', 'collectionId', 'status'
+        ],
+        limit: 0
+        };
+      return this.searchWithProgramId(queryFilter, req);
+  }
 
-getContributionWithProgramId(program_id, req) {
-  const queryFilter = {
-        filters: {
-          programId: program_id,
-          objectType: 'content',
-          status: ['Review', 'Draft', 'Live'],
-          contentType: { '!=': 'Asset' },
-          mimeType: { '!=': 'application/vnd.ekstep.content-collection' }
-        },
-        not_exists: ['sampleContent'],
-        aggregations: [
-          {
-              "l1": "collectionId",
-              "l2": "status"
-          }
-      ],
-      limit: 0
-      };
-    return this.searchWithProgramId(queryFilter, req);
-}
+  getContributionWithProgramId(program_id, req) {
+    const queryFilter = {
+          filters: {
+            programId: program_id,
+            objectType: 'content',
+            status: ['Review', 'Draft', 'Live'],
+            contentType: { '!=': 'Asset' },
+            mimeType: { '!=': 'application/vnd.ekstep.content-collection' }
+          },
+          not_exists: ['sampleContent'],
+          aggregations: [
+            {
+                "l1": "collectionId",
+                "l2": "status",
+                "l3": "prevStatus",
+            }
+        ],
+        limit: 0
+        };
+      return this.searchWithProgramId(queryFilter, req);
+  }
 
   getNominationWithProgramId(programId) {
     const facets = ['collection_ids', 'status'];
@@ -203,14 +211,22 @@ getContributionWithProgramId(program_id, req) {
       nominationResponse = _.isArray(resData[3]) && resData[3].length? _.map(resData[3], obj => obj.dataValues) : [];
       let tableData = [];
     if (collectionList.length) {
-        tableData = _.map(collectionList, (collection) => {
+      let openForContributionCollections = [];
+
+      _.forEach(collectionList, collection => {
+        if (collection.openForContribution === true) {
+          openForContributionCollections.push(collection);
+        }
+      });
+
+        tableData = _.map(openForContributionCollections, (collection) => {
         const result = {};
         // sequence of columns in tableData
         result['Textbook Name'] = collection.name;
-        result['Medium'] = collection.medium || '--';
+        result['Medium'] = collection.medium;
         result['Class'] = collection.gradeLevel && collection.gradeLevel.length ? collection.gradeLevel.join(', ') : '';
-        result['Subject'] = collection.subject || '--';
-        result['Number of Chapters'] = collection.chapterCount || '--';
+        result['Subject'] = collection.subject;
+        result['Number of Chapters'] = collection.chapterCountForContribution || collection.chapterCount || 0;
         result['Nominations Received'] = 0;
         result['Samples Received'] = 0;
         result['Nominations Accepted'] = 0;
@@ -218,6 +234,7 @@ getContributionWithProgramId(program_id, req) {
         result['Contributions Accepted'] = collection.acceptedContents ? collection.acceptedContents.length : 0;
         result['Contributions Rejected'] = collection.rejectedContents ? collection.rejectedContents.length : 0;
         result['Contributions Pending'] = 0;
+        result['Contributions corrections pending'] = 0;
 
         // count of sample contents
         if (sampleContentResponse.length) {
@@ -238,6 +255,11 @@ getContributionWithProgramId(program_id, req) {
                     // tslint:disable-next-line:max-line-length
                     result['Contributions Pending'] = result['Contributions Received'] - (result['Contributions Rejected'] + result['Contributions Accepted']);
                   }
+                  if (obj.name === 'draft') {
+                      const correctionPendingNode =  _.find(obj.aggregations[0].values, {name: "live"});
+                      result['Contributions corrections pending'] = correctionPendingNode.count;
+                      result['Contributions Received'] = result['Contributions Received'] + correctionPendingNode.count;
+                  }
                  });
               }
         }
@@ -246,7 +268,7 @@ getContributionWithProgramId(program_id, req) {
         if (nominationResponse.length) {
          _.forEach(nominationResponse, (obj) => {
            if (obj.collection_ids && _.includes(obj.collection_ids, collection.identifier) ) {
-              if (obj.status === 'Approved') {
+               if (obj.status === 'Approved') {
                 result['Nominations Accepted'] = result['Nominations Accepted'] + Number(obj.count);
               } else if (obj.status !== 'Initiated') {
                 result['Nominations Received'] = result['Nominations Received'] + Number(obj.count);
@@ -281,14 +303,30 @@ getContributionWithProgramId(program_id, req) {
     return axios(option);
   }
 
-  getCollectionHierarchy(req, program_id) {
+  getCollectionHierarchy(req, program_id, openForContribution) {
     return new Promise((resolve, reject) => {
       this.getCollectionWithProgramId(program_id, req).then((res_collection) => {
         const collectionArr = res_collection.data && res_collection.data.result && res_collection.data.result.content || [];
-        forkJoin(..._.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier))).subscribe(data => {
+        const reqArr = [this.getContributionWithProgramId(program_id, req)];
+        const collectionReq = _.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier));
+        forkJoin(...reqArr.concat(collectionReq)).subscribe(data => {
         try {
+          const contribution = data.shift();
           const hierarchyArr = _.compact(_.map(data, obj => obj.data.result && obj.data.result.content));
-          const contentCount = this.approvedContentCount(hierarchyArr, program_id);
+          if (openForContribution == true) {
+            _.forEach(hierarchyArr, item => {
+              let children = [];
+              _.forEach(item.children, child=> {
+                if (child.openForContribution === true) {
+                  children.push(child);
+                }
+              });
+              item.children = children;
+            });
+          }
+
+          const aggregations = contribution.data && contribution.data.result && contribution.data.result.aggregations;
+          const contentCount = this.approvedContentCount(hierarchyArr, program_id, aggregations);
           resolve(contentCount);
         } catch (err) {
           reject('programServiceException: error in counting the approved contents');
@@ -302,10 +340,27 @@ getContributionWithProgramId(program_id, req) {
     });
   }
 
-  approvedContentCount(collectionHierarchy, program_id) {
+  approvedContentCount(collectionHierarchy, program_id, contributionResponse) {
     const collectionWithApprovedContent = _.map(collectionHierarchy, collection => {
       this.acceptedContents = _.uniq(collection.acceptedContents) || [];
+      this.rejectedContents = _.uniq(collection.rejectedContents) || [];
       this.collectionData = {};
+      this.collectionData['totalContentsReviewed'] = (_.union(this.acceptedContents, this.rejectedContents)).length;
+      this.collectionData['contributionsReceived'] = 0;
+
+      // Count of contribution
+      if (contributionResponse.length && contributionResponse[0].name === 'collectionId'
+      && contributionResponse[0].values.length) {
+        const statusCount = _.find(contributionResponse[0].values, {name: collection.identifier});
+        if (statusCount && statusCount.aggregations && statusCount.aggregations.length) {
+          _.forEach(statusCount.aggregations[0].values, (obj) => {
+            if (obj.name === 'live') {
+              this.collectionData['contributionsReceived'] = this.collectionData['contributionsReceived'] + obj.count;
+            }
+          });
+        }
+      }
+
       this.collectionLevelCount(collection);
       return this.collectionData
     });
@@ -328,14 +383,21 @@ getContributionWithProgramId(program_id, req) {
         const chapterObj = {
           name: data.name,
           identifier: data.identifier,
-          count: 0
+          count: 0,
+          contentsContributed: 0,
+          contentsReviewed: 0
         }
         this.contentData = [];
+        this.contentsContributed = [];
+        this.contentsReviewed = [];
         this.chapterLevelCount(data);
         chapterObj['contentTypes'] = _.map(_.groupBy(this.contentData, 'name'), (val, key) => {
           chapterObj['count'] = chapterObj['count'] + val.length;
           return {name: key, count: val.length}
         });
+
+        chapterObj.contentsContributed = this.contentsContributed.length;
+        chapterObj.contentsReviewed = this.contentsReviewed.length;
         this.collectionData['chapter'].push(chapterObj);
       }
     }
@@ -347,10 +409,22 @@ getContributionWithProgramId(program_id, req) {
 
   chapterLevelCount(object) {
     const self = this;
-    if (object.contentType !== 'TextBook' && object.contentType !== 'TextBookUnit' &&
-          _.includes(this.acceptedContents, object.identifier)) {
+    if (object.contentType !== 'TextBook'
+      && object.contentType !== 'TextBookUnit'
+      && _.includes(this.acceptedContents, object.identifier)) {
           this.contentData.push({name: object.contentType});
     }
+
+    if (object.contentType !== 'TextBook'
+        && object.contentType !== 'TextBookUnit'
+        && object.status === 'Live') {
+          this.contentsContributed.push(object.identifier);
+          if (_.includes(this.acceptedContents, object.identifier)
+            || _.includes(this.rejectedContents, object.identifier)) {
+              this.contentsReviewed.push(object.identifier);
+        }
+    }
+
     if (object.children) {
       _.forEach(object.children, child => self.chapterLevelCount(child));
     }
@@ -370,6 +444,8 @@ getContributionWithProgramId(program_id, req) {
               final['Subject'] = collection.subject;
               final['Textbook Name'] = collection.name;
               final['Total Number of Chapters'] = collection.chapter ? collection.chapter.length : 0;
+              final['Total Contents Contributed'] = collection.contributionsReceived ? collection.contributionsReceived : 0;
+              final['Total Contents Reviewed'] = collection.totalContentsReviewed ? collection.totalContentsReviewed : 0;
               final['Chapters with atleast one approved in each contentType'] = contentTypes.length ? _.filter(collection.chapter, unit => unit.contentTypes.length === contentTypes.length).length : 0;
               final['Chapters with atleast one approved'] = _.filter(collection.chapter, unit => unit.contentTypes.length).length;
               final['Total number of Approved Contents'] = collection.count || 0;
@@ -408,6 +484,8 @@ getContributionWithProgramId(program_id, req) {
                   final['Subject'] = collection.subject;
                   final['Textbook Name'] = collection.name;
                   final['Chapter Name'] = unit.name;
+                  final['Total Contents Contributed'] = unit.contentsContributed || 0;
+                  final['Total Contents Reviewed'] = unit.contentsReviewed || 0;
                   final['Total number of Approved Contents'] = unit.count || 0;
                   _.forEach(contentTypes, type => final[type] = 0);
                   _.forEach(unit.contentTypes, type => final[type.name] = (final[type.name] || 0) + type.count);
@@ -428,6 +506,245 @@ getContributionWithProgramId(program_id, req) {
           reject('programServiceException: error in fetching contentTypes');
         });
       });
+  }
+
+  copyCollections(data, channel, reqHeaders, cb) {
+    const rspObj = {};
+    const errObj = {
+      'loggerMsg': null,
+      'errCode': null,
+      'errMsg': null,
+      'responseCode': null
+    };
+
+    if (!data.program_id || !data.config.collections || !data.content_types || !channel) {
+      errObj.errCode = programMessages.COPY_COLLECTION.COPY.MISSING_CODE;
+      errObj.errMsg = programMessages.COPY_COLLECTION.COPY.MISSING_MESSAGE;
+      errObj.responseCode = responseCode.CLIENT_ERROR;
+      errObj.loggerMsg = 'Error due to missing request or program_id or request collections or request allowed_content_types or channel'
+      cb(errObj, null);
+      return false;
+    }
+
+    const collections = _.get(data, 'config.collections');
+    const collectionIds = _.map(collections, 'id');
+    const additionalMetaData = {
+      programId: _.get(data, 'program_id'),
+      allowedContentTypes: _.get(data, 'content_types'),
+      channel: channel,
+      openForContribution: false
+    };
+
+    hierarchyService.filterExistingTextbooks(collectionIds, reqHeaders)
+      .subscribe(
+        (resData) => {
+          const consolidatedResult = _.map(resData, r => {
+            return {
+              result: r.data.result,
+              config: r.config.data
+            }
+          })
+
+          const existingTextbooks = hierarchyService.getExistingCollection(consolidatedResult);
+          const nonExistingTextbooks = hierarchyService.getNonExistingCollection(consolidatedResult)
+
+          if (existingTextbooks && existingTextbooks.length > 0) {
+            hierarchyService.getHierarchy(existingTextbooks, reqHeaders)
+              .subscribe(
+                (originHierarchyResult) => {
+                  const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                    return _.get(r, 'data')
+                  })
+                  const getCollectiveRequest = _.map(originHierarchyResultData, c => {
+                    let children = [];
+                    const cindex = collections.findIndex(r => r.id === c.hierarchy.content.identifier);
+
+                    if (cindex !== -1) {
+                      children = collections[cindex].children;
+                    }
+
+                    return hierarchyService.existingHierarchyUpdateRequest(c, additionalMetaData, children);
+                  })
+                  hierarchyService.bulkUpdateHierarchy(getCollectiveRequest, reqHeaders)
+                    .subscribe(updateResult => {
+                      const updateResultData = _.map(updateResult, obj => {
+                        return obj.data
+                      })
+                      rspObj.result = updateResultData;
+                      rspObj.responseCode = 'OK'
+                      cb(null, rspObj);
+                      return true;
+                    }, error => {
+                      errObj.errCode = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
+                      errObj.errMsg = programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
+                      errObj.responseCode = responseCode.SERVER_ERROR
+                      console.log('Error updating hierarchy for collections', error)
+                      errObj.loggerMsg = 'Error updating hierarchy for collections';
+                      cb (errObj, null);
+                      return false;
+                    })
+                }, error => {
+                  errObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
+                  errObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
+                  errObj.responseCode = responseCode.SERVER_ERROR
+                  errObj.loggerMsg = 'Error fetching hierarchy for collections';
+                  console.log('Error fetching hierarchy for collections', error);
+                  cb (errObj, null);
+                  return false;
+                })
+          }
+
+          if (nonExistingTextbooks && nonExistingTextbooks.length > 0) {
+            hierarchyService.getHierarchy(nonExistingTextbooks, reqHeaders)
+              .subscribe(
+                (originHierarchyResult) => {
+                  const originHierarchyResultData = _.map(originHierarchyResult, r => {
+                    return _.get(r, 'data')
+                  })
+
+                  hierarchyService.createCollection(originHierarchyResultData, reqHeaders)
+                    .subscribe(createResponse => {
+                      const originHierarchy = _.map(originHierarchyResultData, 'result.content');
+
+                      const createdCollections = _.map(createResponse, cr => {
+                        const mapOriginalHierarchy = {
+                          creationResult: cr.data,
+                          hierarchy: {
+                            ...JSON.parse(cr.config.data).request
+                          },
+                          originHierarchy: {
+                            content: _.find(originHierarchy, {
+                              identifier: cr.config.params.identifier
+                            })
+                          }
+                        }
+                        mapOriginalHierarchy.hierarchy.content.identifier = cr.config.params.identifier
+                        return mapOriginalHierarchy;
+                      })
+
+                      const getBulkUpdateRequest = _.map(createdCollections, item => {
+                        let children = [];
+                        const cindex = collections.findIndex(r => r.id === item.hierarchy.content.identifier);
+
+                        if (cindex !== -1) {
+                          children = collections[cindex].children;
+                        }
+
+                        return hierarchyService.newHierarchyUpdateRequest(item, additionalMetaData, children)
+                      })
+
+                      hierarchyService.bulkUpdateHierarchy(getBulkUpdateRequest, reqHeaders)
+                        .subscribe(updateResult => {
+                          const updateResultData = _.map(updateResult, obj => {
+                            return obj.data
+                          })
+
+                          rspObj.result = updateResultData;
+                          rspObj.responseCode = 'OK';
+                          cb(null, rspObj);
+                        }, error => {
+                          console.log('Error updating hierarchy for collections')
+                          console.log(error)
+                          errObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_CODE;
+                          errObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.BULK_UPDATE_HIERARCHY.FAILED_MESSAGE;
+                          errObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                          errObj.loggerMsg = 'Error updating hierarchy for collections';
+                          cb(errObj, null);
+                        })
+                    }, error => {
+                      console.log('Error creating collection')
+                      console.log(error)
+                      errObj.errCode = _.get(error.response, 'data.params.err') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_CODE;
+                      errObj.errMsg = _.get(error.response, 'data.params.errmsg') || programMessages.COPY_COLLECTION.CREATE_COLLECTION.FAILED_MESSAGE;
+                      errObj.responseCode = _.get(error.response, 'data.responseCode') || responseCode.SERVER_ERROR
+                      errObj.loggerMsg = 'Error creating collection';
+                      cb(errObj, null);
+                    })
+                }, (error) => {
+                  errObj.errCode = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_CODE;
+                  errObj.errMsg = programMessages.COPY_COLLECTION.GET_HIERARCHY.FAILED_MESSAGE;
+                  errObj.responseCode = responseCode.SERVER_ERROR;
+                  errObj.loggerMsg = 'Error fetching hierarchy for collections';
+                  console.log('Error fetching hierarchy for collections', error);
+                  cb (errObj, null);
+                })
+          }
+        },
+        (error) => {
+          console.log(error)
+          errObj.errCode = programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_CODE;
+          errObj.errMsg = error.message || programMessages.COPY_COLLECTION.SEARCH_DOCK_COLLECTION.FAILED_MESSAGE;
+          errObj.responseCode = _.get(error, 'response.statusText') || responseCode.SERVER_ERROR
+          errObj.loggerMsg = 'Error searching for collections';
+          console.log('Error searching for collections', error)
+          cb (errObj, null);
+          return false;
+        }
+      );
+  }
+
+  getUserDetails(userId, reqHeaders) {
+    const option = {
+      url: `${envVariables.baseURL}/learner/user/v1/search`,
+      method: 'POST',
+      headers: reqHeaders,
+      data: {
+        request: {
+          filters: {
+            identifier: userId,
+          }
+        }
+      }
+    }
+    return from(axios(option));
+  }
+
+  getAllSourcingOrgUsers(orgUsers, filters, reqHeaders, limit = 500, offset= 0) {
+    offset = (!_.isUndefined(offset)) ? offset : 0;
+    limit = (!_.isUndefined(limit)) ? limit : 500;
+    return new Promise((resolve, reject) => {
+      this.getSourcingOrgUsers(reqHeaders, filters, offset, limit).subscribe(
+        (res) => {
+          const sourcingOrgUsers =  _.get(res, 'data.result.response.content', []);
+          const totalCount = _.get(res, 'data.result.response.count');
+
+          if (sourcingOrgUsers.length > 0) {
+            orgUsers = _.compact(_.concat(orgUsers, sourcingOrgUsers));
+            offset = offset + sourcingOrgUsers.length;
+          }
+
+          if (totalCount > orgUsers.length){
+            return resolve(this.getAllSourcingOrgUsers(orgUsers, filters, reqHeaders, limit, offset));
+          }
+          return resolve(orgUsers);
+        },
+        (error) => {
+          return reject(error.message);
+        }
+      );
+    });
+  }
+
+  getSourcingOrgUsers(reqHeaders, reqFilters, offset, limit) {
+    const req = {
+      url: `${envVariables.baseURL}/learner/user/v1/search`,
+      method: 'post',
+      headers: reqHeaders,
+      data: {
+        request: {
+          filters: reqFilters
+        }
+      }
+    };
+
+    if (!_.isUndefined(limit)) {
+      req.data.request['limit'] = limit;
+    }
+    if (!_.isUndefined(offset)) {
+      req.data.request['offset'] = offset;
+    }
+
+    return from(axios(req));
   }
 }
 

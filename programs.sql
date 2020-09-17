@@ -147,3 +147,53 @@ CREATE TABLE public.user_program_preference
 
 ALTER TYPE status ADD VALUE 'Unlisted';
 ALTER TYPE status ADD VALUE 'Retired';
+
+-- Sprint 12
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('contentVideoSize', 15360, 'active');
+CREATE INDEX "idx_program_rootorgid_status" ON "public"."program" USING BTREE ("rootorg_id", "status");
+CREATE INDEX "pk_program_status_type" ON "public"."program" USING BTREE ("status", "type");
+CREATE INDEX "pk_program_updatedon" ON "public"."program" USING BTREE (updatedon DESC);
+CREATE INDEX "idx_nomination_updatedon" ON "public"."nomination" USING BTREE (updatedon DESC);
+CREATE INDEX "idx_nomination_userid" ON "public"."nomination" (user_id);
+CREATE INDEX "idx_nomination_programid" ON "public"."nomination" USING BTREE (program_id);
+ALTER TABLE program ALTER COLUMN config TYPE jsonb USING config::jsonb;
+
+-- Sprint 14
+
+-- Sequence and defined type
+CREATE SEQUENCE IF NOT EXISTS bulk_job_id_seq;
+DROP TYPE IF EXISTS "public"."bulk_job_status";
+CREATE TYPE "public"."bulk_job_status" AS ENUM ('processing', 'completed', 'failed');
+DROP TYPE IF EXISTS "public"."bulk_job_type";
+CREATE TYPE "public"."bulk_job_type" AS ENUM ('bulk_upload', 'bulk_approval');
+-- Table Definition
+CREATE TABLE "public"."bulk_job_request" (
+    "id" int4 NOT NULL DEFAULT nextval('bulk_job_id_seq'::regclass),
+    "process_id" varchar NOT NULL UNIQUE,
+    "program_id" varchar NOT NULL,
+    "collection_id" varchar,
+    "org_id" varchar,
+    "status" "public"."bulk_job_status",
+    "type" "public"."bulk_job_type",
+    "overall_stats" jsonb,
+    "data" jsonb,
+    "err_message" text,
+    "createdby" varchar,
+    "updatedby" varchar,
+    "createdon" timestamptz DEFAULT timezone('utc'::text, now()),
+    "updatedon" timestamptz NOT NULL DEFAULT timezone('utc'::text, now()),
+    "completedon" timestamp,
+    "expiration" timestamp,
+    PRIMARY KEY ("id","process_id")
+);
+-- Indices
+CREATE INDEX "pk_bulk_job_request_createdon" ON "public"."bulk_job_request" USING BTREE (createdon DESC);
+
+
+-- Sprint 15
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('projectFeedDays', 3, 'active');
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('smsContentAcceptWithChanges', 'VidyaDaan: Your Content $contentName for the project $projectName has been approved by the project owner with few changes.', 'active');
+INSERT INTO "public"."configuration" ("key", "value", "status") VALUES ('overrideMetaData', '[{"code":"name","dataType":"text","editable":true},{"code":"learningOutcome","dataType":"list","editable":true},{"code":"attributions","dataType":"list","editable":false},{"code":"copyright","dataType":"text","editable":false},{"code":"creator","dataType":"text","editable":false},{"code":"license","dataType":"list","editable":false},{"code":"contentPolicyCheck","dataType":"boolean","editable":false}]', 'active');
+### DIKSHA EMAIL TemplATES
+INSERT INTO sunbird.email_template (name, template)
+VALUES ('emailContentAcceptWithChanges', '<!doctype html> <head> <meta name="viewport" content="width=device-width"> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <title></title> <style> @media screen and (min-width: 320px) { .container { width: 100%; font-family: sans-serif; font-size: 14px; display: block; Margin: 0 auto; background: #fff; max-width: initial; padding: 25px; } body { background: #fff !important; } td, p { font-size: 15px !important; } } @media screen and (min-width: 767px) { .container { max-width: 580px; padding: 8px 25px; width: 580px !important; margin-top: 25px !important; } body { background-color: #F6F6F6 !important; } } </style> </head> <body style="background-color: #F6F6F6; font-family: sans-serif; -webkit-font-smoothing: antialiased; font-size: 14px; line-height: 1.7; margin: 0; padding: 0; -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%;"> <div class="container"> <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%;"> <tr> <td><img src="https://vdn.diksha.gov.in/tenant/ntp/logo.png" alt="logo" align="right" width="180" max-width="100%" style="padding-top: 15px;"> </td> </tr> <tr> <td style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin-bottom: 15px;line-height: 1.7;padding:10px 0"> Hi,</td> </tr> <tr> <td> <p> This is to inform you that your content $contentName contributed to the project $projectName has been approved by the project owner with few changes. </p> </td> </tr> <tr> <td> <div style="font-family: sans-serif; font-size: 14px; font-weight: normal;line-height: 1.7;"> Regards, </div> <div style="font-family: sans-serif; font-size: 14px; font-weight: normal;margin-bottom: 15px;line-height: 1.7;"> VidyaDaan Team </div> </td> </tr> <tr> <td> <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;line-height: 1.7;"> Note: This is an automatically generated email. Replies to this mailbox will not be monitored. If you are not the intended recipient of this message, or need to communicate with the team, write to <a href="mailto:vdnsupport@teamdiksha.org">vdnsupport@teamdiksha.org</a> </p> </td> </tr> </table> </div> </body> </html>')

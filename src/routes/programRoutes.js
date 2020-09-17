@@ -17,6 +17,14 @@ module.exports = function (app) {
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.updateProgramAPI)
 
+  app.route(BASE_URL + '/publish')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.publishProgramAPI)
+
+  app.route(BASE_URL + '/unlist/publish')
+  .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+    programService.unlistPublishProgramAPI)
+    
   app.route(BASE_URL + '/delete')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.deleteProgramAPI)
@@ -92,6 +100,10 @@ module.exports = function (app) {
   app.route(BASE_URL + '/tenant/list')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
       programService.programCountsByOrgAPI)
+
+  app.route(BASE_URL + '/sync/registry')
+    .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
+      programService.syncUsersToRegistry)
 
   app.route(BASE_URL + '/preference/create')
     .post(requestMiddleware.gzipCompression(), requestMiddleware.createAndValidateRequestBody,
