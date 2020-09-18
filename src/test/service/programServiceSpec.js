@@ -452,7 +452,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            contentType: [''],
+            nominations: '',
           }
         }
       })
@@ -474,7 +474,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            contributions: [''],
+            contributions: '',
           }
         }
       })
