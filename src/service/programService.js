@@ -5,6 +5,7 @@ const SbCacheManager = require('sb_cache_manager');
 const messageUtils = require('./messageUtil');
 const respUtil = require('response_util');
 const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
 const contentTypeMessages = messageUtils.CONTENT_TYPE;
@@ -1171,8 +1172,26 @@ function programList(req, response) {
       }));
     });
   } else {
+    const filtersOnConfig = ['medium', 'subject', 'gradeLevel'];
+    const filters = {};
+    filters[Op.and] = _.map(data.request.filters, (value, key) => {
+      const res = {};
+      if (filtersOnConfig.includes(key)) {
+        res[Op.or] = _.map(data.request.filters[key], (val) => {
+          delete data.request.filters[key];
+          return {
+            ['config.' + key] : {
+              [Op.regexp]: val
+            }
+          };
+        });
+        return res;
+      }
+    });
+
     model.program.findAll({
         where: {
+          ...filters,
           ...data.request.filters
         },
         attributes: data.request.fields || {
