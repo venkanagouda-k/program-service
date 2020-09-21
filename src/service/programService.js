@@ -1060,6 +1060,23 @@ function programList(req, response) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
 
+  const filtersOnConfig = ['medium', 'subject', 'gradeLevel'];
+  const filters = {};
+  filters[Op.and] = _.map(data.request.filters, (value, key) => {
+    const res = {};
+    if (filtersOnConfig.includes(key)) {
+      res[Op.or] = _.map(data.request.filters[key], (val) => {
+        delete data.request.filters[key];
+        return {
+          ['config.' + key] : {
+            [Op.regexp]: val
+          }
+        };
+      });
+      return res;
+    }
+  });
+
   if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
@@ -1121,20 +1138,23 @@ function programList(req, response) {
       });
   } else if (data.request.filters && data.request.filters.role && data.request.filters.user_id) {
     const promises = [];
-    let status = data.request.filters.status && _.map(data.request.filters.status, x => "'" + x + "'" ) || '';
+    const roles = data.request.filters.role;
+    const user_id = data.request.filters.user_id;
+    delete data.request.filters.role;
+    delete data.request.filters.user_id;
 
-    _.forEach(data.request.filters.role, (role) => {
+    _.forEach(roles, (role) => {
         let whereCond = {
-          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${data.request.filters.user_id}%')`),
+          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${user_id}%')`),
         };
-
-        if (status) {
-          whereCond['status'] = Sequelize.literal(`"program"."status" IN (${status})`);
-        }
 
         promises.push(
           model.program.findAndCountAll({
-          where: whereCond,
+          where: {
+            ...whereCond,
+            ...data.request.filters,
+            ...filters
+          },
           offset: res_offset,
           limit: res_limit,
           order: [
@@ -1172,23 +1192,6 @@ function programList(req, response) {
       }));
     });
   } else {
-    const filtersOnConfig = ['medium', 'subject', 'gradeLevel'];
-    const filters = {};
-    filters[Op.and] = _.map(data.request.filters, (value, key) => {
-      const res = {};
-      if (filtersOnConfig.includes(key)) {
-        res[Op.or] = _.map(data.request.filters[key], (val) => {
-          delete data.request.filters[key];
-          return {
-            ['config.' + key] : {
-              [Op.regexp]: val
-            }
-          };
-        });
-        return res;
-      }
-    });
-
     model.program.findAll({
         where: {
           ...filters,
