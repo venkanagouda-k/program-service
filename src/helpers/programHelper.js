@@ -136,7 +136,7 @@ class ProgramServiceHelper {
          status: ['Draft'],
          contentType: 'Textbook'
        },
-       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution', 'chapterCountForContribution'],
+       fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution', 'chapterCountForContribution', 'mvcContributions'],
        limit: 1000
      };
     return this.searchWithProgramId(queryFilter, req);
@@ -252,8 +252,6 @@ class ProgramServiceHelper {
                 _.forEach(statusCount.aggregations[0].values, (obj) => {
                   if (obj.name === 'live') {
                     result['Contributions Received'] = result['Contributions Received'] + obj.count;
-                    // tslint:disable-next-line:max-line-length
-                    result['Contributions Pending'] = result['Contributions Received'] - (result['Contributions Rejected'] + result['Contributions Accepted']);
                   }
                   if (obj.name === 'draft') {
                       const correctionPendingNode =  _.find(obj.aggregations[0].values, {name: "live"});
@@ -263,6 +261,13 @@ class ProgramServiceHelper {
                  });
               }
         }
+
+        // count of MVC contribution (if any)
+        if (!_.isEmpty(collection.mvcContributions)) {
+          result['Contributions Received'] = result['Contributions Received'] + collection.mvcContributions.length;
+        }
+        // tslint:disable-next-line:max-line-length
+        result['Contributions Pending'] = result['Contributions Received'] - (result['Contributions Rejected'] + result['Contributions Accepted'] + result['Contributions corrections pending']);
 
         // count of nomination
         if (nominationResponse.length) {
