@@ -87,7 +87,6 @@ async function createProgram(req, response) {
   }
 
   model.program.create(insertObj).then(sc => {
-    // console.log("Program successfully written to DB", sc);
     return response.status(200).send(successResponse({
       apiId: 'api.program.create',
       ver: '1.0',
@@ -921,49 +920,7 @@ function getUserRegistryDetails(userId, reqHeaders) {
   });
 }
 
-async function deleteProgram(req, response) {
-  var data = req.body
-  var rspObj = req.rspObj
-  if (!data.request || !data.request.program_id) {
-    rspObj.errCode = programMessages.READ.MISSING_CODE
-    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
-    rspObj.responseCode = responseCode.CLIENT_ERROR
-    logger.error({
-      msg: 'Error due to missing request or request config or request rootOrgId or request type',
-      err: {
-        errCode: rspObj.errCode,
-        errMsg: rspObj.errMsg,
-        responseCode: rspObj.responseCode
-      },
-      additionalInfo: {
-        data
-      }
-    }, req)
-    return response.status(400).send(errorResponse(rspObj))
-  }
-  const deleteQuery = {
-    program_id: req.body.request.program_id
-  };
-  programDBModel.instance.program.deleteAsync(deleteQuery).then(resData => {
-    return response.status(200).send(successResponse({
-      apiId: 'api.program.delete',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'OK',
-      result: {
-        'program_id': deleteQuery.program_id
-      }
-    }));
-  }).catch(error => {
-    console.log('ERRor in deleteAsync ', error);
-    return response.status(400).send(errorResponse({
-      apiId: 'api.program.delete',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'ERR_DELETE_PROGRAM',
-      result: error
-    }));
-  });
+function deleteProgram(req, response) {
 }
 
 function getProgramCountsByOrg(req, response) {
@@ -2001,32 +1958,6 @@ function createUserRecords(user, userOrgMapDetails, orgInfoList, callback) {
 
 
 function programSearch(req, response) {
-  const fieldsToSelect = _.compact(_.split(_.get(req, 'query.fields'), ','));
-  const requiredKeys = ['program_id', 'type', 'name', 'description', 'image_path']
-  const searchCriteria = _.uniq([...requiredKeys, ...fieldsToSelect]);
-  const searchQuery = _.get(req, 'body.request');
-  programDBModel.instance.program.findAsync(searchQuery, {
-      allow_filtering: true,
-      select: searchCriteria,
-      raw: true
-    })
-    .then(resData => {
-      return response.status(200).send(successResponse({
-        apiId: 'api.program.search',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'OK',
-        result: resData
-      }));
-    }).catch(error => {
-      return response.status(400).send(errorResponse({
-        apiId: 'api.program.search',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'ERR_SEARCH_PROGRAM',
-        result: error.message || error
-      }));
-    })
 }
 
 function getProgramContentTypes(req, response) {
