@@ -395,14 +395,14 @@ describe('Program Service', () => {
   })
 
   // eslint-disable-next-line no-undef
-  it('it should GET programs with contentType in request', (done) => {
+  it('it should GET programs with content_types in request', (done) => {
     chai.request(app)
       .post(BASE_URL + '/list')
       .set('Accept', 'application/json')
       .send({
         request: {
           filters: {
-            contentType: ['FocusSpot', 'TeachingMethod'],
+            content_types: ['FocusSpot', 'TeachingMethod'],
           }
         }
       })
@@ -428,9 +428,8 @@ describe('Program Service', () => {
             medium: ['English', 'Hindi'],
             gradeLevel: ['Class 1', 'Class 2'],
             subject: ['Mathematics'],
-            contentType: ['FocusSpot', 'TeachingMethod'],
-            organization: [],
-
+            content_types: ['FocusSpot', 'TeachingMethod'],
+            rootorg_id: ["0130659746662727680"],
           }
         }
       })
