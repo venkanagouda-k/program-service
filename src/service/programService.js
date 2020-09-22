@@ -1190,7 +1190,6 @@ function addNomination(req, response) {
   const insertObj = req.body.request;
 
   model.nomination.create(insertObj).then(res => {
-    console.log("nomination successfully written to DB", res);
     return response.status(200).send(successResponse({
       apiId: 'api.nomination.add',
       ver: '1.0',

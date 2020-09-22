@@ -86,7 +86,7 @@ exports.getCollectionWithProgramId = {
               status: ['Draft'],
               contentType: 'Textbook'
             },
-            fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents'],
+            fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution', 'chapterCountForContribution', 'mvcContributions'],
             limit: 1000
           }
 }
@@ -102,7 +102,9 @@ exports.resultsGetCollectionWithProgramId = {
                 name: "DP-30",
                 objectType: "Content",
                 rejectedContents: ["do_11306389286445875216363", "do_11306390274224947216366"],
-                subject: "Hindi"
+                subject: "Hindi",
+                openForContribution: true,
+                mvcContributions: ['do_123']
             }
         ],
         count: 1
@@ -160,7 +162,8 @@ exports.getContributionWithProgramId = {
         aggregations: [
           {
               "l1": "collectionId",
-              "l2": "status"
+              "l2": "status",
+              "l3": "prevStatus",
           }
         ],
       limit: 0
@@ -178,8 +181,44 @@ exports.resultGetContributionWithProgramId = {
                             {
                                 name: "status",
                                 values: [
-                                    {count: 5, name: "live"},
-                                    {count: 3, name: "draft"}
+                                    {
+                                        count: 5, 
+                                        name: "live", 
+                                        aggregations: [
+                                            {
+                                                "values": [
+                                                    {
+                                                        "count": 1,
+                                                        "name": "live"
+                                                    },
+                                                    {
+                                                        "count": 1,
+                                                        "name": "review"
+                                                    }
+                                                ],
+                                                name: "prevStatus"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        count: 3, 
+                                        name: "draft",
+                                        aggregations: [
+                                            {
+                                                "values": [
+                                                    {
+                                                        "count": 1,
+                                                        "name": "live"
+                                                    },
+                                                    {
+                                                        "count": 1,
+                                                        "name": "review"
+                                                    }
+                                                ],
+                                                name: "prevStatus"
+                                            }
+                                        ]
+                                    }
                                 ]
                             }
                         ],
