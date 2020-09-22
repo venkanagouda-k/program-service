@@ -1070,7 +1070,7 @@ function programList(req, response) {
         delete data.request.filters[key];
         return {
           ['config.' + key] : {
-            [Op.regexp]: val
+            [Op.like]: '%' + val +'%'
           }
         };
       });
