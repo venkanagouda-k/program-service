@@ -312,11 +312,9 @@ class ProgramServiceHelper {
     return new Promise((resolve, reject) => {
       this.getCollectionWithProgramId(program_id, req).then((res_collection) => {
         const collectionArr = res_collection.data && res_collection.data.result && res_collection.data.result.content || [];
-        const reqArr = [this.getContributionWithProgramId(program_id, req)];
         const collectionReq = _.map(collectionArr, collection => this.hierarchyRequest(req, collection.identifier));
-        forkJoin(...reqArr.concat(collectionReq)).subscribe(data => {
+        forkJoin(...collectionReq).subscribe(data => {
         try {
-          const contribution = data.shift();
           const hierarchyArr = _.compact(_.map(data, obj => obj.data.result && obj.data.result.content));
           if (openForContribution == true) {
             _.forEach(hierarchyArr, item => {
@@ -330,8 +328,7 @@ class ProgramServiceHelper {
             });
           }
 
-          const aggregations = contribution.data && contribution.data.result && contribution.data.result.aggregations;
-          const contentCount = this.approvedContentCount(hierarchyArr, program_id, aggregations);
+          const contentCount = this.approvedContentCount(hierarchyArr, program_id);
           resolve(contentCount);
         } catch (err) {
           reject('programServiceException: error in counting the approved contents');
@@ -345,28 +342,27 @@ class ProgramServiceHelper {
     });
   }
 
-  approvedContentCount(collectionHierarchy, program_id, contributionResponse) {
+  approvedContentCount(collectionHierarchy, program_id) {
     const collectionWithApprovedContent = _.map(collectionHierarchy, collection => {
       this.acceptedContents = _.uniq(collection.acceptedContents) || [];
       this.rejectedContents = _.uniq(collection.rejectedContents) || [];
       this.collectionData = {};
       this.collectionData['totalContentsReviewed'] = (_.union(this.acceptedContents, this.rejectedContents)).length;
       this.collectionData['contributionsReceived'] = 0;
+      this.collectionLevelCount(collection);
 
       // Count of contribution
-      if (contributionResponse.length && contributionResponse[0].name === 'collectionId'
-      && contributionResponse[0].values.length) {
-        const statusCount = _.find(contributionResponse[0].values, {name: collection.identifier});
-        if (statusCount && statusCount.aggregations && statusCount.aggregations.length) {
-          _.forEach(statusCount.aggregations[0].values, (obj) => {
-            if (obj.name === 'live') {
-              this.collectionData['contributionsReceived'] = this.collectionData['contributionsReceived'] + obj.count;
-            }
-          });
-        }
-      }
 
-      this.collectionLevelCount(collection);
+      this.collectionData['contributionsReceived'] = _.reduce(_.get(this.collectionData, 'chapter'), (finalCount, data) => {
+        finalCount =  finalCount + (data.contentsContributed || 0);
+        return finalCount;
+      }, 0);
+
+      this.collectionData['totalContentsReviewed'] = _.reduce(_.get(this.collectionData, 'chapter'), (finalCount, data) => {
+        finalCount =  finalCount + (data.contentsReviewed || 0);
+        return finalCount;
+      }, 0);
+
       return this.collectionData
     });
     return {program_id: program_id, collection: collectionWithApprovedContent};
@@ -422,10 +418,10 @@ class ProgramServiceHelper {
 
     if (object.contentType !== 'TextBook'
         && object.contentType !== 'TextBookUnit'
-        && object.status === 'Live') {
+        && (object.status === 'Live' || (object.status === 'Draft' && object.prevStatus === 'Live'))) {
           this.contentsContributed.push(object.identifier);
           if (_.includes(this.acceptedContents, object.identifier)
-            || _.includes(this.rejectedContents, object.identifier)) {
+          || _.includes(this.rejectedContents, object.identifier) || (object.status === 'Draft' && object.prevStatus === 'Live')) {
               this.contentsReviewed.push(object.identifier);
         }
     }
