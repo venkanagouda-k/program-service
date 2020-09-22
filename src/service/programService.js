@@ -5,6 +5,7 @@ const SbCacheManager = require('sb_cache_manager');
 const messageUtils = require('./messageUtil');
 const respUtil = require('response_util');
 const Sequelize = require('sequelize');
+const moment = require('moment');
 const Op = Sequelize.Op;
 const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
@@ -1074,6 +1075,25 @@ function programList(req, response) {
         };
       });
       return res;
+    }
+
+    if ((key === 'nomination' || key === 'contribution') && value) {
+      let dateFilterValue;
+      switch(value) {
+        case 'open':
+          dateFilterValue = {[Op.gte]: moment()}
+        break;
+        case 'closed':
+          dateFilterValue = {[Op.lt]: moment()}
+        break;
+      }
+      const dateFilterColumn = (key === 'nomination') ? 'nomination_enddate' : 'content_submission_enddate';
+      delete data.request.filters[key];
+      return {
+        [dateFilterColumn]:{
+          ...dateFilterValue
+        }
+      };
     }
   });
 
