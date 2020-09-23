@@ -1076,8 +1076,26 @@ function programList(req, response) {
       });
       return res;
     }
+    else if (key === 'content_types' && value) {
+      // res[Op.or] = _.map(data.request.filters[key], (val) => {
+      //   delete data.request.filters[key];
+      //   return {
+      //     [key] : {
+      //       [Op.like]: '%' + val +'%'
+      //     }
+      //   };
+      // });
 
-    if ((key === 'nomination' || key === 'contribution') && value) {
+      // res[Op.or] = {
+      //   'content_types':{
+      //     [Op.regexp]: 'FocusSpot'
+      //   }
+      // };
+
+      // delete  data.request.filters[key];
+      // return res;
+    }
+    else if ((key === 'nomination' || key === 'contribution') && value) {
       let dateFilterValue;
       switch(value) {
         case 'open':

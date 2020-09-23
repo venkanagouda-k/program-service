@@ -416,6 +416,90 @@ describe('Program Service', () => {
       })
   })
 
+  it('it should GET nomination open programs', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            nomination: 'open',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  it('it should GET nomination closed programs', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            nomination: 'closed',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  it('it should GET contribution open programs', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            nomination: 'open',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  it('it should GET contribution closed programs', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            contribution: 'closed',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
   // eslint-disable-next-line no-undef
   it('it should GET programs with all filters in request', (done) => {
     chai.request(app)
