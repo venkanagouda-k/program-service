@@ -111,39 +111,129 @@ exports.resultsGetCollectionWithProgramId = {
     }
 }
 
-exports.getSampleContentWithProgramId = {
+exports.getSampleContentWithOrgId = {
     request: {
-            filters: {
-            programId: '',
-            objectType: 'content',
-            status: ['Review', 'Draft'],
-            sampleContent: true
-            },
-            facets: [
-            'sampleContent', 'collectionId', 'status'
-        ],
-        limit: 0
+        filters: {
+          programId: '',
+          objectType: 'content',
+          status: ['Review', 'Draft'],
+          sampleContent: true
+        },
+        aggregations: [
+          {
+              "l1": "collectionId",
+              "l2": "organisationId"
+          }
+      ],
+      limit: 0
       }
 }
 
-exports.resultsGetSampleContentWithProgramId = {
+exports.resultsGetSampleContentWithOrgId = {
     result: {
-        count: 6,
-        facets: [
+        "count": 3,
+        "aggregations": [
             {
-                name: "sampleContent",
-                values: [{name: "true", count: 6}]
-            },
+                "values": [
+                    {
+                        "count": 3,
+                        "name": "do_11306389164045926416355",
+                        "aggregations": [
+                            {
+                                "values": [
+                                    {
+                                        "count": 2,
+                                        "name": "4fe5d899-dc3e-48de-b0b6-891e0922d371"
+                                    }
+                                ],
+                                "name": "organisationId"
+                            }
+                        ]
+                    }
+                ],
+                "name": "collectionId"
+            }
+        ]
+    }
+}
+
+exports.getSampleContentWithCreatedBy = {
+    request: {
+        filters: {
+          programId: '',
+          objectType: 'content',
+          status: ['Review', 'Draft'],
+          sampleContent: true
+        },
+        aggregations: [
+          {
+              "l1": "collectionId",
+              "l2": "createdBy"
+          }
+      ],
+      limit: 0
+      }
+}
+
+exports.resultsGetSampleContentWithCreatedBy = {
+    result: {
+        "count": 3,
+        "aggregations": [
             {
-                name: "collectionId",
-                values: [{name: "do_1130610285558169601677", count: 6}]
-            },
+                "values": [
+                    {
+                        "count": 3,
+                        "name": "do_11306389164045926416355",
+                        "aggregations": [
+                            {
+                                "values": [
+                                    {
+                                        "count": 1,
+                                        "name": "f7dab7bc-b9ea-457a-b4d9-7633fbd9736c" // same as nominationAdd user_id
+                                    },
+                                    {
+                                        "count": 1,
+                                        "name": "g7dab7bc-b9ea-457a-b4d9-7633fbd9736c"
+                                    },
+                                    {
+                                        "count": 1,
+                                        "name": "h7dab7bc-b9ea-457a-b4d9-7633fbd9736c"
+                                    }
+                                ],
+                                "name": "createdBy"
+                            }
+                        ]
+                    }
+                ],
+                "name": "collectionId"
+            }
+        ]
+    }
+}
+
+exports.resultsGetSampleContentWithOrgId_01 = {
+    result: {
+        "count": 3,
+        "aggregations": [
             {
-                name: "status",
-                values: [
-                    {name: "review", count: 1},
-                    {name: "draft", count: 6}
-                ]
+                "values": [
+                    {
+                        "count": 3,
+                        "name": "do_11306389164045926416355",
+                        "aggregations": [
+                            {
+                                "values": [
+                                    {
+                                        "count": 2,
+                                        "name": "5fe5d899-dc3e-48de-b0b6-891e0922d371" // wrongly modified for test data
+                                    }
+                                ],
+                                "name": "organisationId"
+                            }
+                        ]
+                    }
+                ],
+                "name": "collectionId"
             }
         ]
     }
@@ -163,7 +253,7 @@ exports.getContributionWithProgramId = {
           {
               "l1": "collectionId",
               "l2": "status",
-              "l3": "prevStatus",
+              "l3": "prevStatus"
           }
         ],
       limit: 0
