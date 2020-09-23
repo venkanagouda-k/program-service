@@ -1077,23 +1077,13 @@ function programList(req, response) {
       return res;
     }
     else if (key === 'content_types' && value) {
-      // res[Op.or] = _.map(data.request.filters[key], (val) => {
-      //   delete data.request.filters[key];
-      //   return {
-      //     [key] : {
-      //       [Op.like]: '%' + val +'%'
-      //     }
-      //   };
-      // });
-
-      // res[Op.or] = {
-      //   'content_types':{
-      //     [Op.regexp]: 'FocusSpot'
-      //   }
-      // };
-
-      // delete  data.request.filters[key];
-      // return res;
+      res[Op.or] = _.map(data.request.filters[key], (val) => {
+        return Sequelize.literal(`'${val}' = ANY (content_types)`);
+      });
+      delete data.request.filters[key];
+      return {
+        $and : res
+      }
     }
     else if ((key === 'nomination' || key === 'contribution') && value) {
       let dateFilterValue;
@@ -1230,6 +1220,7 @@ function programList(req, response) {
       }));
     });
   } else {
+
     model.program.findAll({
         where: {
           ...filters,
