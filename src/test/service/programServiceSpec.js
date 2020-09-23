@@ -501,33 +501,6 @@ describe('Program Service', () => {
   })
 
   // eslint-disable-next-line no-undef
-  it('it should GET programs with all filters in request', (done) => {
-    chai.request(app)
-      .post(BASE_URL + '/list')
-      .set('Accept', 'application/json')
-      .send({
-        request: {
-          filters: {
-            status: ['Live', 'Unlisted', 'Draft'],
-            medium: ['English', 'Hindi'],
-            gradeLevel: ['Class 1', 'Class 2'],
-            subject: ['Mathematics'],
-            content_types: ['FocusSpot', 'TeachingMethod'],
-            rootorg_id: ["0130659746662727680"],
-          }
-        }
-      })
-      // eslint-disable-next-line handle-callback-err
-      .end((err, res) => {
-          expect(res.status).to.equal(200)
-          expect(res.body.result).to.have.property('programs');
-          expect(res.body.result).to.have.property('count');
-          expect(res.body.result.programs).to.be.a('array');
-        done()
-      })
-  })
-
-  // eslint-disable-next-line no-undef
   it('it should GET programs with nomination date in request', (done) => {
     chai.request(app)
       .post(BASE_URL + '/list')
