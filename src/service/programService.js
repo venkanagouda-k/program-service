@@ -2005,32 +2005,6 @@ function createUserRecords(user, userOrgMapDetails, orgInfoList, callback) {
 }
 
 function programSearch(req, response) {
-  const fieldsToSelect = _.compact(_.split(_.get(req, 'query.fields'), ','));
-  const requiredKeys = ['program_id', 'type', 'name', 'description', 'image_path']
-  const searchCriteria = _.uniq([...requiredKeys, ...fieldsToSelect]);
-  const searchQuery = _.get(req, 'body.request');
-  programDBModel.instance.program.findAsync(searchQuery, {
-      allow_filtering: true,
-      select: searchCriteria,
-      raw: true
-    })
-    .then(resData => {
-      return response.status(200).send(successResponse({
-        apiId: 'api.program.search',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'OK',
-        result: resData
-      }));
-    }).catch(error => {
-      return response.status(400).send(errorResponse({
-        apiId: 'api.program.search',
-        ver: '1.0',
-        msgid: uuid(),
-        responseCode: 'ERR_SEARCH_PROGRAM',
-        result: error.message || error
-      }));
-    })
 }
 
 function getProgramContentTypes(req, response) {
