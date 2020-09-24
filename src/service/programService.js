@@ -1026,8 +1026,8 @@ function programList(req, response) {
       res[Op.or] = _.map(data.request.filters[key], (val) => {
         delete data.request.filters[key];
         return {
-          ['config.' + key] : {
-            [Op.like]: '%' + val +'%'
+          ['config'] : {
+            [Op.contains]: Sequelize.literal(`'{"${key}":["${val}"]}'`)
           }
         };
       });
