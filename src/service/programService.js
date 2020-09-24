@@ -5,6 +5,8 @@ const SbCacheManager = require('sb_cache_manager');
 const messageUtils = require('./messageUtil');
 const respUtil = require('response_util');
 const Sequelize = require('sequelize');
+const moment = require('moment');
+const Op = Sequelize.Op;
 const responseCode = messageUtils.RESPONSE_CODE;
 const programMessages = messageUtils.PROGRAM;
 const contentTypeMessages = messageUtils.CONTENT_TYPE;
@@ -1016,6 +1018,49 @@ function programList(req, response) {
     res_limit = (data.request.limit < queryRes_Max) ? data.request.limit : (queryRes_Max);
   }
 
+  const filtersOnConfig = ['medium', 'subject', 'gradeLevel'];
+  const filters = {};
+  filters[Op.and] = _.map(data.request.filters, (value, key) => {
+    const res = {};
+    if (filtersOnConfig.includes(key)) {
+      res[Op.or] = _.map(data.request.filters[key], (val) => {
+        delete data.request.filters[key];
+        return {
+          ['config.' + key] : {
+            [Op.like]: '%' + val +'%'
+          }
+        };
+      });
+      return res;
+    }
+    else if (key === 'content_types' && value) {
+      res[Op.or] = _.map(data.request.filters[key], (val) => {
+        return Sequelize.literal(`'${val}' = ANY (content_types)`);
+      });
+      delete data.request.filters[key];
+      return {
+        $and : res
+      }
+    }
+    else if ((key === 'nomination_enddate' || key === 'content_submission_enddate') && value) {
+      let dateFilterValue;
+      switch(value) {
+        case 'open':
+          dateFilterValue = {[Op.gte]: moment()}
+        break;
+        case 'closed':
+          dateFilterValue = {[Op.lt]: moment()}
+        break;
+      }
+      delete data.request.filters[key];
+      return {
+        [key]:{
+          ...dateFilterValue
+        }
+      };
+    }
+  });
+
   if (data.request.filters && data.request.filters.enrolled_id) {
     if (!data.request.filters.enrolled_id.user_id) {
       rspObj.errCode = programMessages.READ.MISSING_CODE
@@ -1077,20 +1122,23 @@ function programList(req, response) {
       });
   } else if (data.request.filters && data.request.filters.role && data.request.filters.user_id) {
     const promises = [];
-    let status = data.request.filters.status && _.map(data.request.filters.status, x => "'" + x + "'" ) || '';
+    const roles = data.request.filters.role;
+    const user_id = data.request.filters.user_id;
+    delete data.request.filters.role;
+    delete data.request.filters.user_id;
 
-    _.forEach(data.request.filters.role, (role) => {
+    _.forEach(roles, (role) => {
         let whereCond = {
-          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${data.request.filters.user_id}%')`),
+          $contains: Sequelize.literal(`cast(rolemapping->>'${role}' as text) like ('%${user_id}%')`),
         };
-
-        if (status) {
-          whereCond['status'] = Sequelize.literal(`"program"."status" IN (${status})`);
-        }
 
         promises.push(
           model.program.findAndCountAll({
-          where: whereCond,
+          where: {
+            ...whereCond,
+            ...data.request.filters,
+            ...filters
+          },
           offset: res_offset,
           limit: res_limit,
           order: [
@@ -1128,8 +1176,10 @@ function programList(req, response) {
       }));
     });
   } else {
+
     model.program.findAll({
         where: {
+          ...filters,
           ...data.request.filters
         },
         attributes: data.request.fields || {
@@ -1952,10 +2002,6 @@ function createUserRecords(user, userOrgMapDetails, orgInfoList, callback) {
 
 
 }
-
-
-
-
 
 function programSearch(req, response) {
 }

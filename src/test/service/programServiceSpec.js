@@ -235,7 +235,7 @@ describe('Program Service', () => {
           done()
         })
     })
-  })  
+  })
 
   // eslint-disable-next-line no-undef
   it('it should list nominations', (done) => {
@@ -338,6 +338,201 @@ describe('Program Service', () => {
   })
 
   // eslint-disable-next-line no-undef
+  it('it should GET programs with status in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+              status: ['Live', 'Unlisted', 'Draft'],
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should GET programs with medium in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            medium: ['English', 'Hindi'],
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should GET programs with gradeLevel in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            gradeLevel: ['Class 1', 'Class 2'],
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should GET programs with subject in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            subject: ['Mathematics'],
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should GET programs with content_types in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            content_types: ['FocusSpot', 'TeachingMethod'],
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
+  it('it should GET programs with nomination date in request', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            nomination_enddate: 'open',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  it('it should GET nomination closed programs', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            nomination_enddate: 'closed',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  it('it should GET contribution open programs', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            content_submission_enddate: 'open',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  it('it should GET contribution closed programs', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            content_submission_enddate: 'closed',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+        done()
+      })
+  })
+
+  // eslint-disable-next-line no-undef
   it('it should get contentTypes', (done) => {
     chai.request(app)
       .get(BASE_URL + '/contenttypes/list')
@@ -367,7 +562,7 @@ describe('Program Service', () => {
         done()
       })
   })
-  
+
   // eslint-disable-next-line no-undef
   it('it should not get program details', (done) => {
     const programDetails = {request: {filters: {program_id: [programId2]}} }
@@ -483,7 +678,7 @@ describe('Program Service', () => {
       // eslint-disable-next-line handle-callback-err
       .end((err, res) => {
         expect(res.status).to.equal(200)
-        expect(_.get(res.body.result.tableData[0].values[0], 'Samples Received')).to.equal(1) // (Total - samples under Initiated state) = (3 - 2) 
+        expect(_.get(res.body.result.tableData[0].values[0], 'Samples Received')).to.equal(1) // (Total - samples under Initiated state) = (3 - 2)
         done()
       })
   });
@@ -520,7 +715,7 @@ describe('Program Service', () => {
         done()
       })
   });
-  
+
   // eslint-disable-next-line no-undef
   it('it should not download nomination list details', (done) => {
     const programDetails = {request: {filters: {program_id: programId, program_name: 'Test case', status: 'Pending'}} }
@@ -529,7 +724,7 @@ describe('Program Service', () => {
     nock(envVariables.baseURL)
     .post('/api/composite/v1/search', dummyData.searchSampleContents)
     .reply(400, {error: 'Something went wrong'} )
-    
+
     chai.request(app)
       .post(BASE_URL + '/nomination/list/download')
       .set('Accept', 'application/json')
@@ -549,7 +744,7 @@ describe('Program Service', () => {
     nock(envVariables.baseURL)
     .post('/api/composite/v1/search', dummyData.searchSampleContents)
     .reply(200, dummyData.resultSearchSampleContents )
-    
+
     chai.request(app)
       .post(BASE_URL + '/nomination/list/download')
       .set('Accept', 'application/json')
@@ -573,7 +768,7 @@ describe('Program Service', () => {
     // nock(envVariables.baseURL)
     // .post('/api/composite/v1/search', dummyData.searchSampleContents)
     // .reply(400, {error: 'Something went wrong'} )
-    
+
     chai.request(app)
       .post(BASE_URL + '/nomination/list/download')
       .set('Accept', 'application/json')
