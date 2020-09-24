@@ -447,14 +447,15 @@ describe('Program Service', () => {
       })
   })
 
-  it('it should GET nomination open programs', (done) => {
+  // eslint-disable-next-line no-undef
+  it('it should GET programs with nomination date in request', (done) => {
     chai.request(app)
       .post(BASE_URL + '/list')
       .set('Accept', 'application/json')
       .send({
         request: {
           filters: {
-            nomination: 'open',
+            nomination_enddate: 'open',
           }
         }
       })
@@ -475,7 +476,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            nomination: 'closed',
+            nomination_enddate: 'closed',
           }
         }
       })
@@ -496,7 +497,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            nomination: 'open',
+            content_submission_enddate: 'open',
           }
         }
       })
@@ -517,51 +518,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            contribution: 'closed',
-          }
-        }
-      })
-      // eslint-disable-next-line handle-callback-err
-      .end((err, res) => {
-          expect(res.status).to.equal(200)
-          expect(res.body.result).to.have.property('programs');
-          expect(res.body.result).to.have.property('count');
-          expect(res.body.result.programs).to.be.a('array');
-        done()
-      })
-  })
-
-  // eslint-disable-next-line no-undef
-  it('it should GET programs with nomination date in request', (done) => {
-    chai.request(app)
-      .post(BASE_URL + '/list')
-      .set('Accept', 'application/json')
-      .send({
-        request: {
-          filters: {
-            nominations: '',
-          }
-        }
-      })
-      // eslint-disable-next-line handle-callback-err
-      .end((err, res) => {
-          expect(res.status).to.equal(200)
-          expect(res.body.result).to.have.property('programs');
-          expect(res.body.result).to.have.property('count');
-          expect(res.body.result.programs).to.be.a('array');
-        done()
-      })
-  })
-
-  // eslint-disable-next-line no-undef
-  it('it should GET programs with contributions date in request', (done) => {
-    chai.request(app)
-      .post(BASE_URL + '/list')
-      .set('Accept', 'application/json')
-      .send({
-        request: {
-          filters: {
-            contributions: '',
+            content_submission_enddate: 'closed',
           }
         }
       })
