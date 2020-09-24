@@ -22,6 +22,9 @@ function getPublishContentEvent(metadata, textbookId, units) {
     if(metadata.medium){
       metadata.medium = _.isArray(metadata.medium) ? metadata.medium : [metadata.medium];
     }
+    if(_.isString(metadata.plugins)) {
+      metadata.plugins = JSON.parse(metadata.plugins);
+    }
     metadata = _.omit(metadata, [
       "downloadUrl",
       "variants",
