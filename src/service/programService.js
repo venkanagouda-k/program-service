@@ -89,7 +89,6 @@ async function createProgram(req, response) {
   }
 
   model.program.create(insertObj).then(sc => {
-    // console.log("Program successfully written to DB", sc);
     return response.status(200).send(successResponse({
       apiId: 'api.program.create',
       ver: '1.0',
@@ -923,49 +922,7 @@ function getUserRegistryDetails(userId, reqHeaders) {
   });
 }
 
-async function deleteProgram(req, response) {
-  var data = req.body
-  var rspObj = req.rspObj
-  if (!data.request || !data.request.program_id) {
-    rspObj.errCode = programMessages.READ.MISSING_CODE
-    rspObj.errMsg = programMessages.READ.MISSING_MESSAGE
-    rspObj.responseCode = responseCode.CLIENT_ERROR
-    logger.error({
-      msg: 'Error due to missing request or request config or request rootOrgId or request type',
-      err: {
-        errCode: rspObj.errCode,
-        errMsg: rspObj.errMsg,
-        responseCode: rspObj.responseCode
-      },
-      additionalInfo: {
-        data
-      }
-    }, req)
-    return response.status(400).send(errorResponse(rspObj))
-  }
-  const deleteQuery = {
-    program_id: req.body.request.program_id
-  };
-  programDBModel.instance.program.deleteAsync(deleteQuery).then(resData => {
-    return response.status(200).send(successResponse({
-      apiId: 'api.program.delete',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'OK',
-      result: {
-        'program_id': deleteQuery.program_id
-      }
-    }));
-  }).catch(error => {
-    console.log('ERRor in deleteAsync ', error);
-    return response.status(400).send(errorResponse({
-      apiId: 'api.program.delete',
-      ver: '1.0',
-      msgid: uuid(),
-      responseCode: 'ERR_DELETE_PROGRAM',
-      result: error
-    }));
-  });
+function deleteProgram(req, response) {
 }
 
 function getProgramCountsByOrg(req, response) {
@@ -1284,7 +1241,6 @@ function addNomination(req, response) {
   const insertObj = req.body.request;
 
   model.nomination.create(insertObj).then(res => {
-    console.log("nomination successfully written to DB", res);
     return response.status(200).send(successResponse({
       apiId: 'api.nomination.add',
       ver: '1.0',
