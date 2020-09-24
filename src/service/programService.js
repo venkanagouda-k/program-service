@@ -1042,7 +1042,7 @@ function programList(req, response) {
         $and : res
       }
     }
-    else if ((key === 'nomination' || key === 'contribution') && value) {
+    else if ((key === 'nomination_enddate' || key === 'content_submission_enddate') && value) {
       let dateFilterValue;
       switch(value) {
         case 'open':
@@ -1052,10 +1052,9 @@ function programList(req, response) {
           dateFilterValue = {[Op.lt]: moment()}
         break;
       }
-      const dateFilterColumn = (key === 'nomination') ? 'nomination_enddate' : 'content_submission_enddate';
       delete data.request.filters[key];
       return {
-        [dateFilterColumn]:{
+        [key]:{
           ...dateFilterValue
         }
       };
