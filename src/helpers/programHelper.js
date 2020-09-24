@@ -306,7 +306,7 @@ class ProgramServiceHelper {
                   if (obj.name === 'live') {
                     result['Contributions Received'] = result['Contributions Received'] + obj.count;
                   }
-                  if (obj.name === 'draft') {
+                  if (obj.name === 'draft' && obj.aggregations && obj.aggregations.length) {
                       const correctionPendingNode =  _.find(obj.aggregations[0].values, {name: "live"});
                       result['Contributions corrections pending'] = correctionPendingNode.count;
                       result['Contributions Received'] = result['Contributions Received'] + correctionPendingNode.count;
