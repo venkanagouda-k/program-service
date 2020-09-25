@@ -564,6 +564,48 @@ describe('Program Service', () => {
       })
   })
 
+  it('it should GET data for individual contributor', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            enrolled_id: {
+              user_id: "cca53828-8111-4d71-9c45-40e569f13bad"
+            },
+            status: [
+              "Live"
+            ],
+            medium: [
+              "English"
+            ],
+            content_types: [
+              "TeachingMethod"
+            ],
+            nomination_enddate:'open',
+            content_submission_enddate:'open',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+          expect(res.body.result.programs.map(e=>(e.program.status))).to.include("Live");
+          res.body.result.programs.forEach((val) => {
+            expect(val.user_id).to.be.equal('cca53828-8111-4d71-9c45-40e569f13bad');
+            expect(JSON.parse(val.program.medium)).to.have.include.members(["English"]);
+            expect(val.program.content_types).to.have.include.members(["TeachingMethod"]);
+            expect(new Date(val.program.nomination_enddate)).to.be.gte(new Date(moment()));
+            expect(new Date(val.program.content_submission_enddate)).to.be.gte(new Date(moment()));
+          });
+          done()
+      })
+  })
+
   // eslint-disable-next-line no-undef
   it('it should get contentTypes', (done) => {
     chai.request(app)
