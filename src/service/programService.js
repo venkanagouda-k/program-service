@@ -1026,8 +1026,8 @@ function programList(req, response) {
       res[Op.or] = _.map(data.request.filters[key], (val) => {
         delete data.request.filters[key];
         return {
-          ['config.' + key] : {
-            [Op.like]: '%' + val +'%'
+          'config' : {
+            [Op.contains]: Sequelize.literal(`'{"${key}":["${val}"]}'`)
           }
         };
       });
@@ -1079,9 +1079,12 @@ function programList(req, response) {
       }, req)
       return response.status(400).send(errorResponse(rspObj))
     }
+
+    const user_id = data.request.filters.enrolled_id.user_id;
+    delete data.request.filters.enrolled_id;
     model.nomination.findAll({
         where: {
-          user_id: data.request.filters.enrolled_id.user_id
+          user_id: user_id
         },
         offset: res_offset,
         limit: res_limit,
@@ -1090,7 +1093,11 @@ function programList(req, response) {
           required: true,
           attributes: {
             include: [[Sequelize.json('config.subject'), 'subject'], [Sequelize.json('config.defaultContributeOrgReview'), 'defaultContributeOrgReview'], [Sequelize.json('config.framework'), 'framework'], [Sequelize.json('config.board'), 'board'],[Sequelize.json('config.gradeLevel'), 'gradeLevel'], [Sequelize.json('config.medium'), 'medium']],
-            exclude: ['config', 'description']
+            exclude: ['config', 'description'],
+          },
+          where: {
+            ...filters,
+            ...data.request.filters
           }
         }],
         order: [
