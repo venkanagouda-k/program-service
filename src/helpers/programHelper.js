@@ -222,10 +222,10 @@ class ProgramServiceHelper {
         tableData = _.map(openForContributionCollections, (collection) => {
         const result = {};
         // sequence of columns in tableData
-        result['Textbook Name'] = collection.name;
-        result['Medium'] = collection.medium;
+        result['Textbook Name'] = collection.name || '';
+        result['Medium'] = collection.medium || '';
         result['Class'] = collection.gradeLevel && collection.gradeLevel.length ? collection.gradeLevel.join(', ') : '';
-        result['Subject'] = collection.subject;
+        result['Subject'] = collection.subject || '';
         result['Number of Chapters'] = collection.chapterCountForContribution || collection.chapterCount || 0;
         result['Nominations Received'] = 0;
         result['Samples Received'] = 0;
@@ -253,7 +253,7 @@ class ProgramServiceHelper {
                   if (obj.name === 'live') {
                     result['Contributions Received'] = result['Contributions Received'] + obj.count;
                   }
-                  if (obj.name === 'draft' && obj.aggregations && obj.aggregations.length) {
+                  if (obj.name === 'draft' && obj.aggregations && obj.aggregations.length && _.find(obj.aggregations[0].values, {name: "live"})) {
                       const correctionPendingNode =  _.find(obj.aggregations[0].values, {name: "live"});
                       result['Contributions corrections pending'] = correctionPendingNode.count;
                       result['Contributions Received'] = result['Contributions Received'] + correctionPendingNode.count;
