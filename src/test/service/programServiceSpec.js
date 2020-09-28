@@ -6,6 +6,7 @@ const app = require('../../app')
 const envVariables = require('../../envVariables')
 const chai = require('chai')
 const nock = require('nock');
+const moment = require('moment');
 const chaiHttp = require('chai-http')
 chai.use(chaiHttp)
 const { expect } = chai
@@ -345,7 +346,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-              status: ['Live', 'Unlisted', 'Draft'],
+            status: ['Live']
           }
         }
       })
@@ -355,6 +356,9 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
+          if (res.body.result.programs.length) {
+            expect(res.body.result.programs.map(e=>(e.status))).to.include("Live");
+          }
         done()
       })
   })
@@ -367,7 +371,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            medium: ['English', 'Hindi'],
+            medium: ['English'],
           }
         }
       })
@@ -377,7 +381,10 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
-        done()
+          res.body.result.programs.forEach((val) => {
+            expect(JSON.parse(val.medium)).to.include.members(["English"]);
+          });
+          done()
       })
   })
 
@@ -389,7 +396,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            gradeLevel: ['Class 1', 'Class 2'],
+            gradeLevel: ['Class 1'],
           }
         }
       })
@@ -399,6 +406,9 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
+          res.body.result.programs.forEach((val) => {
+            expect(JSON.parse(val.gradeLevel)).to.include.members(["Class 1"]);
+          });
         done()
       })
   })
@@ -421,6 +431,9 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
+          res.body.result.programs.forEach((val) => {
+            expect(JSON.parse(val.subject)).to.include.members(["Mathematics"]);
+          });
         done()
       })
   })
@@ -433,7 +446,7 @@ describe('Program Service', () => {
       .send({
         request: {
           filters: {
-            content_types: ['FocusSpot', 'TeachingMethod'],
+            content_types: ['FocusSpot'],
           }
         }
       })
@@ -443,7 +456,10 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
-        done()
+          res.body.result.programs.forEach((val) => {
+            expect(val.content_types).to.include.members(["FocusSpot"]);
+          });
+          done()
       })
   })
 
@@ -465,6 +481,10 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
+          res.body.result.programs.forEach((val) => {
+            expect(val).to.have.property('nomination_enddate');
+            expect(new Date(val.nomination_enddate)).to.be.gte(new Date(moment()));
+          });
         done()
       })
   })
@@ -486,7 +506,11 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
-        done()
+          res.body.result.programs.forEach((val) => {
+            expect(val).to.have.property('nomination_enddate');
+            expect(new Date(val.nomination_enddate)).to.be.lt(new Date(moment()));
+          });
+          done()
       })
   })
 
@@ -507,7 +531,11 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
-        done()
+          res.body.result.programs.forEach((val) => {
+            expect(val).to.have.property('content_submission_enddate');
+            expect(new Date(val.content_submission_enddate)).to.be.gte(new Date(moment()));
+          });
+          done()
       })
   })
 
@@ -528,7 +556,53 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
-        done()
+          res.body.result.programs.forEach((val) => {
+            expect(val).to.have.property('content_submission_enddate');
+            expect(new Date(val.content_submission_enddate)).to.be.lt(new Date(moment()));
+          });
+          done()
+      })
+  })
+
+  it('it should GET data for individual contributor', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+            enrolled_id: {
+              user_id: "cca53828-8111-4d71-9c45-40e569f13bad"
+            },
+            status: [
+              "Live"
+            ],
+            medium: [
+              "English"
+            ],
+            content_types: [
+              "TeachingMethod"
+            ],
+            nomination_enddate:'open',
+            content_submission_enddate:'open',
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result).to.have.property('count');
+          expect(res.body.result.programs).to.be.a('array');
+          expect(res.body.result.programs.map(e=>(e.program.status))).to.include("Live");
+          res.body.result.programs.forEach((val) => {
+            expect(val.user_id).to.be.equal('cca53828-8111-4d71-9c45-40e569f13bad');
+            expect(JSON.parse(val.program.medium)).to.have.include.members(["English"]);
+            expect(val.program.content_types).to.have.include.members(["TeachingMethod"]);
+            expect(new Date(val.program.nomination_enddate)).to.be.gte(new Date(moment()));
+            expect(new Date(val.program.content_submission_enddate)).to.be.gte(new Date(moment()));
+          });
+          done()
       })
   })
 

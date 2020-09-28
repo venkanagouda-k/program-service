@@ -1035,7 +1035,7 @@ function programList(req, response) {
     }
     else if (key === 'content_types' && value) {
       res[Op.or] = _.map(data.request.filters[key], (val) => {
-        return Sequelize.literal(`'${val}' = ANY (content_types)`);
+        return Sequelize.literal(`'${val}' = ANY (\"program\".\"content_types\")`);
       });
       delete data.request.filters[key];
       return {
