@@ -85,7 +85,9 @@ class HierarchyService {
                 "contentDisposition",
                 "os",
                 "idealScreenDensity",
-                "depth"
+                "depth",
+                "origin",
+                "originData"
               ])
             }
           }
@@ -159,7 +161,12 @@ class HierarchyService {
     let instance = this;
     this.hierarchy = {};
     this.nodeModified = {};
-    const response = collection.originHierarchy;
+    const response = {
+      ..._.omit(collection.originHierarchy, [
+        "content.origin",
+        "content.originData"
+      ])
+    };
     additionalMetaData = {
       ...collection.creationResult.result,
       ...additionalMetaData,
