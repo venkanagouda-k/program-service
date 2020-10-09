@@ -279,7 +279,7 @@ class ProgramServiceHelper {
         if (sampleContentWithOrgId.length && sampleContentWithOrgId[0].name === 'collectionId'
              && sampleContentWithOrgId[0].values.length) {
               const sampleCountObj = _.find(sampleContentWithOrgId[0].values, {name: collection.identifier});
-              result['Samples Received'] = sampleCountObj && sampleCountObj.count;
+              result['Samples Received'] = (sampleCountObj) ? sampleCountObj.count : 0;
               if (sampleCountObj && !_.isEmpty(sampleCountObj.aggregations) && !_.isEmpty(sampleCountObj.aggregations[0].values)) {
                 const ignoringCount = _.reduce(sampleCountObj.aggregations[0].values, (final, data) => {
                   return _.includes(overalIds, data.name) ? (final + data.count) : final;
