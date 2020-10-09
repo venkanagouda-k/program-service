@@ -589,7 +589,7 @@ class ProgramServiceHelper {
       openForContribution: false
     };
 
-    hierarchyService.filterExistingTextbooks(collectionIds, additionalMetaData.programId, reqHeaders)
+    hierarchyService.filterExistingTextbooks(collectionIds, reqHeaders)
       .subscribe(
         (resData) => {
           const consolidatedResult = _.map(resData, r => {

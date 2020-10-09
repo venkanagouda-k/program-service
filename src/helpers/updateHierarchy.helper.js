@@ -4,7 +4,7 @@ const envVariables = require("../envVariables");
 const axios = require("axios");
 
 class HierarchyService {
-  filterExistingTextbooks(collectionIds, programId, reqHeaders) {
+  filterExistingTextbooks(collectionIds, reqHeaders) {
     const url = `${envVariables.baseURL}/api/composite/v1/search`;
     const filterRequest = _.map(collectionIds, id => {
       const option = {
@@ -16,8 +16,7 @@ class HierarchyService {
             filters: {
               objectType: "content",
               status: ["Draft", "Live"],
-              origin: id,
-              programId,
+              identifier: id,
               contentType: "Textbook"
             }
           }
