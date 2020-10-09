@@ -165,7 +165,8 @@ class HierarchyService {
     const response = {
       ..._.omit(collection.originHierarchy, [
         "content.origin",
-        "content.originData"
+        "content.originData",
+        "content.audience"
       ])
     };
     additionalMetaData = {
