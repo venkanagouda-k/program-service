@@ -165,8 +165,7 @@ class HierarchyService {
     const response = {
       ..._.omit(collection.originHierarchy, [
         "content.origin",
-        "content.originData",
-        "content.audience"
+        "content.originData"
       ])
     };
     additionalMetaData = {
@@ -286,6 +285,9 @@ class HierarchyService {
           }
         }
       };
+      if(data.contentType !== "TextBook" && instance.nodeModified[nodeId].metadata && instance.nodeModified[nodeId].metadata.audience) {
+        delete instance.nodeModified[nodeId].metadata.audience;
+      }
     }
 
     _.forEach(data.children, child => {
