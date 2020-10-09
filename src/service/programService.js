@@ -2209,7 +2209,7 @@ async function programCopyCollections(req, response) {
     openForContribution: false
   }
 
-  hierarchyService.filterExistingTextbooks(collectionIds, reqHeaders)
+  hierarchyService.filterExistingTextbooks(collectionIds, additionalMetaData.programId, reqHeaders)
     .subscribe(
       (resData) => {
         const consolidatedResult = _.map(resData, r => {
