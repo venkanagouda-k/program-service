@@ -12,7 +12,9 @@ const programMessages = messageUtils.PROGRAM;
 const logger = require('sb_logger_util_v2');
 const { retry } = require("rxjs/operators");
 const HierarchyService = require('./updateHierarchy.helper');
-const hierarchyService = new HierarchyService()
+const RegistryService = require('../service/registryService');
+const hierarchyService = new HierarchyService();
+const registryService = new RegistryService();
 
 class ProgramServiceHelper {
   searchContent(programId, sampleContentCheck, reqHeaders) {
@@ -799,6 +801,74 @@ class ProgramServiceHelper {
     }
 
     return from(axios(req));
+  }
+
+  /**
+   * Update the user profile with medium, subject and gradeLevel
+   *
+   * @param {*} program_id  Program id
+   * @param {*} user_id     User id
+   */
+  onAfterAddNomination(program_id, user_id) {
+    this.getProgramDetails(program_id).then(data => {
+      const value = {};
+      value['body'] = {
+        "id": "open-saber.registry.search",
+        "request": {
+            "entityType":["User"],
+            "filters": {
+              "userId": {
+                  "contains": user_id
+              }
+          }
+        }
+      };
+
+      const callback = (err, res) => {
+        if (!err && res) {
+          const user = _.first(res.data.result.User);
+          const updateRequestBody = {};
+          updateRequestBody['body'] = {
+            "id": "open-saber.registry.update",
+            "ver": "1.0",
+            "request": {
+              "User": {
+               "osid": user.osid,
+               "medium": _.union(user.medium, data.config.medium),
+               "gradeLevel": _.union(user.gradeLevel, data.config.gradeLevel),
+               "subject": _.union(user.subject, data.config.subject)
+               }
+            }
+          };
+          registryService.updateRecord(updateRequestBody, (res, err) => {
+            return true;
+          });
+        }
+      };
+      registryService.searchRecord(value, callback);
+    });
+  }
+
+  /**
+   * Sort the program based on medium, subject, gradeLevel and program created date
+   *
+   * @param {*} programs
+   * @param {*} sort
+   */
+  sortPrograms(programs, sort) {
+    _.map(programs, program => {
+      program.matchCount =  _.intersection(JSON.parse(program.medium), sort.medium).length
+        + _.intersection(JSON.parse(program.gradeLevel), sort.gradeLevel).length
+        + _.intersection(JSON.parse(program.subject), sort.subject).length;
+      return program;
+    });
+
+    /**
+     * Sort by descending order
+     * 1. Sum of matching medium, subject and gradeLevel and
+     * 2. program created date
+     */
+    return _(programs).chain().sortBy((prg) => prg.createdon).sortBy((prg) => prg.matchCount).values().reverse();
   }
 }
 

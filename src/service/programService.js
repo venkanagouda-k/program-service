@@ -1183,7 +1183,6 @@ function programList(req, response) {
       }));
     });
   } else {
-
     model.program.findAll({
         where: {
           ...filters,
@@ -1200,7 +1199,11 @@ function programList(req, response) {
         ]
       })
       .then(function (res) {
-        const apiRes = _.map(res, 'dataValues');
+        let apiRes = _.map(res, 'dataValues');
+        if (data.request.sort){
+          apiRes = programServiceHelper.sortPrograms(apiRes, data.request.sort);
+        }
+
         return response.status(200).send(successResponse({
           apiId: 'api.program.list',
           ver: '1.0',
@@ -1247,6 +1250,7 @@ function addNomination(req, response) {
   const insertObj = req.body.request;
 
   model.nomination.create(insertObj).then(res => {
+    programServiceHelper.onAfterAddNomination(insertObj.program_id, insertObj.user_id);
     return response.status(200).send(successResponse({
       apiId: 'api.nomination.add',
       ver: '1.0',
@@ -3043,6 +3047,9 @@ function getParams(msgId, status, errCode, msg) {
 
   return params
 }
+
+
+
 module.exports.syncUsersToRegistry = syncUsersToRegistry
 module.exports.getProgramAPI = getProgram
 module.exports.createProgramAPI = createProgram
