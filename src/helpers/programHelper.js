@@ -806,8 +806,8 @@ class ProgramServiceHelper {
   /**
    * Update the user profile with medium, subject and gradeLevel
    *
-   * @param {*} program_id  Program id
-   * @param {*} user_id     User id
+   * @param integer program_id  Program id
+   * @param integer user_id     User id
    */
   onAfterAddNomination(program_id, user_id) {
     this.getProgramDetails(program_id).then(data => {
@@ -856,8 +856,8 @@ class ProgramServiceHelper {
   /**
    * Sort the program based on medium, subject, gradeLevel and program created date
    *
-   * @param {*} programs
-   * @param {*} sort
+   * @param array  programs  List of programs
+   * @param object sort      Sort by options
    */
   sortPrograms(programs, sort) {
     _.map(programs, program => {
