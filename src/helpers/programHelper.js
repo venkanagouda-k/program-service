@@ -840,8 +840,12 @@ class ProgramServiceHelper {
                }
             }
           };
-          registryService.updateRecord(updateRequestBody, (res, err) => {
-            return true;
+          registryService.updateRecord(updateRequestBody, (error, response) => {
+            if (!error && response) {
+              return response;
+            } else {
+              return error;
+            }
           });
         }
       };

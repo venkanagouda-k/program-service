@@ -4,12 +4,13 @@ process.env.NODE_ENV = 'test'
 
 const app = require('../../app')
 const envVariables = require('../../envVariables')
-const chai = require('chai')
+const chai = require('chai');
 const nock = require('nock');
 const moment = require('moment');
 const chaiHttp = require('chai-http')
 chai.use(chaiHttp)
-const { expect } = chai
+const { expect } = chai;
+chai.use(require("chai-sorted"));
 const _ = require("lodash");
 
 const programData = require('../testData/program.json')
@@ -594,7 +595,9 @@ describe('Program Service', () => {
           expect(res.body.result).to.have.property('programs');
           expect(res.body.result).to.have.property('count');
           expect(res.body.result.programs).to.be.a('array');
-          expect(res.body.result.programs.map(e=>(e.program.status))).to.include("Live");
+          if (res.body.result.programs.length) {
+            expect(res.body.result.programs.map(e=>(e.program.status))).to.include("Live");
+          }
           res.body.result.programs.forEach((val) => {
             expect(val.user_id).to.be.equal('cca53828-8111-4d71-9c45-40e569f13bad');
             expect(JSON.parse(val.program.medium)).to.have.include.members(["English"]);
@@ -855,6 +858,37 @@ describe('Program Service', () => {
         expect(_.keys(res.body.result.stats[0]).length).to.equal(7) // bez of some mandatory properties
         expect(res.body.result.stats[0].sample).to.equal(2);
         done()
+      })
+  })
+
+  it('Sort the program by medium, gradeLevel and subject', (done) => {
+    chai.request(app)
+      .post(BASE_URL + '/list')
+      .set('Accept', 'application/json')
+      .send({
+        request: {
+          filters: {
+          },
+          sort: {
+            medium: ["Hindi", "English"],
+            gradeLevel: ["Class 10"],
+            subject: ["Science", "English"]
+          }
+        }
+      })
+      // eslint-disable-next-line handle-callback-err
+      .end((err, res) => {
+          expect(res.status).to.equal(200)
+          expect(res.body.result).to.have.property('programs');
+          expect(res.body.result.programs).to.be.a('array');
+          res.body.result.programs.forEach((program) => {
+            expect(program).to.have.property('matchCount');
+          });
+
+          if (res.body.result.programs.length) {
+            expect(res.body.result.programs).to.be.sortedBy("matchCount", {descending: true})
+          }
+          done()
       })
   })
 })
