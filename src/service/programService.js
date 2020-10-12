@@ -3048,8 +3048,6 @@ function getParams(msgId, status, errCode, msg) {
   return params
 }
 
-
-
 module.exports.syncUsersToRegistry = syncUsersToRegistry
 module.exports.getProgramAPI = getProgram
 module.exports.createProgramAPI = createProgram
