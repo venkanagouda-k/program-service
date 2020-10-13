@@ -809,47 +809,46 @@ class ProgramServiceHelper {
    * @param integer program_id  Program id
    * @param integer user_id     User id
    */
-  onAfterAddNomination(program_id, user_id) {
-    this.getProgramDetails(program_id).then(data => {
-      const value = {};
-      value['body'] = {
-        "id": "open-saber.registry.search",
-        "request": {
-            "entityType":["User"],
-            "filters": {
-              "userId": {
-                  "contains": user_id
+  async onAfterAddNomination(program_id, user_id) {
+    const program = await this.getProgramDetails(program_id);
+    const value = {};
+    value['body'] = {
+      "id": "open-saber.registry.search",
+      "request": {
+          "entityType":["User"],
+          "filters": {
+            "userId": {
+                "contains": user_id
+            }
+        }
+      }
+    };
+
+    registryService.searchRecord(value, (err, res) => {
+      if (!err && res) {
+        const user = _.first(res.data.result.User);
+        const updateRequestBody = {};
+        updateRequestBody['body'] = {
+          "id": "open-saber.registry.update",
+          "ver": "1.0",
+          "request": {
+            "User": {
+              "osid": user.osid,
+              "medium": _.union(user.medium, program.config.medium),
+              "gradeLevel": _.union(user.gradeLevel, program.config.gradeLevel),
+              "subject": _.union(user.subject, program.config.subject)
               }
           }
-        }
-      };
-
-      const callback = (err, res) => {
-        if (!err && res) {
-          const user = _.first(res.data.result.User);
-          const updateRequestBody = {};
-          updateRequestBody['body'] = {
-            "id": "open-saber.registry.update",
-            "ver": "1.0",
-            "request": {
-              "User": {
-               "osid": user.osid,
-               "medium": _.union(user.medium, data.config.medium),
-               "gradeLevel": _.union(user.gradeLevel, data.config.gradeLevel),
-               "subject": _.union(user.subject, data.config.subject)
-               }
-            }
-          };
-          registryService.updateRecord(updateRequestBody, (error, response) => {
-            if (!error && response) {
-              return response;
-            } else {
-              return error;
-            }
-          });
-        }
-      };
-      registryService.searchRecord(value, callback);
+        };
+        registryService.updateRecord(updateRequestBody, (error, response) => {
+          debugger;
+          if (!error && response) {
+            return response;
+          } else {
+            return error;
+          }
+        });
+      }
     });
   }
 
