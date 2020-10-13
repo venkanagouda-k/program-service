@@ -841,7 +841,6 @@ class ProgramServiceHelper {
           }
         };
         registryService.updateRecord(updateRequestBody, (error, response) => {
-          debugger;
           if (!error && response) {
             return response;
           } else {
