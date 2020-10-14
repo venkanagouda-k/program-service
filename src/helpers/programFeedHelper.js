@@ -53,6 +53,7 @@ const searchContributions = (query, headers) => {
           "name",
           "collectionId",
           "contentType",
+          "primaryCategory",
           "status",
           "createdOn"
         ]
@@ -94,6 +95,7 @@ const getCollections = (contents, headers) => {
               "acceptedContents",
               "rejectedContents",
               "contentType",
+              "primaryCategory",
               "status",
               "createdOn"
           ]

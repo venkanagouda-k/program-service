@@ -44,7 +44,8 @@ class ProgramServiceHelper {
                   'organisationId',
                   'collectionId',
                   'prevStatus',
-                  'contentType'
+                  'contentType',
+                  'primaryCategory'
           ],
           limit: 10000
         }
@@ -132,9 +133,9 @@ class ProgramServiceHelper {
     const queryFilter = {
        filters: {
          programId: program_id,
-         objectType: 'content',
+         objectType: 'collection',
          status: ['Draft'],
-         contentType: 'Textbook'
+         primaryCategory: 'Digital Textbook'
        },
        fields: ['name', 'medium', 'gradeLevel', 'subject', 'chapterCount', 'acceptedContents', 'rejectedContents', 'openForContribution', 'chapterCountForContribution', 'mvcContributions'],
        limit: 1000
@@ -423,7 +424,7 @@ class ProgramServiceHelper {
 
   collectionLevelCount(data) {
     const self = this;
-    if (data.contentType === 'TextBook') {
+    if (data.primaryCategory === 'Digital Textbook') {
       this.collectionData['name'] = data.name;
       this.collectionData['identifier'] = data.identifier;
       this.collectionData['grade'] = _.isArray(data.gradeLevel) ? data.gradeLevel.join(", ") : data.gradeLevel || '';
@@ -432,7 +433,7 @@ class ProgramServiceHelper {
       this.collectionData['count'] = this.acceptedContents.length;
       this.collectionData['chapter'] = [];
       this.recursive = true;
-    } else if (data.contentType === 'TextBookUnit') {
+    } else if (data.primaryCategory === 'Textbook Unit') {
       if (data.parent === this.collectionData['identifier']) {
         const chapterObj = {
           name: data.name,
@@ -463,14 +464,14 @@ class ProgramServiceHelper {
 
   chapterLevelCount(object) {
     const self = this;
-    if (object.contentType !== 'TextBook'
-      && object.contentType !== 'TextBookUnit'
+    if (object.primaryCategory !== 'Digital Textbook'
+      && object.primaryCategory !== 'Textbook Unit'
       && _.includes(this.acceptedContents, object.identifier)) {
-          this.contentData.push({name: object.contentType});
+          this.contentData.push({name: object.primaryCategory});
     }
 
-    if (object.contentType !== 'TextBook'
-        && object.contentType !== 'TextBookUnit'
+    if (object.primaryCategory !== 'Digital Textbook'
+        && object.primaryCategory !== 'Textbook Unit'
         && (object.status === 'Live' || (object.status === 'Draft' && object.prevStatus === 'Live'))) {
           this.contentsContributed.push(object.identifier);
           if (_.includes(this.acceptedContents, object.identifier)

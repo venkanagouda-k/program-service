@@ -14,10 +14,10 @@ class HierarchyService {
         data: {
           request: {
             filters: {
-              objectType: "content",
+              objectType: "collection",
               status: ["Draft", "Live"],
               identifier: id,
-              contentType: "Textbook"
+              primaryCategory: "Digital Textbook"
             }
           }
         }
@@ -208,30 +208,30 @@ class HierarchyService {
   getFlatHierarchyObj(data, additionalMetaData, children) {
     let instance = this;
     if (data) {
-      if (additionalMetaData.isFirstTime && data.contentType === "TextBook") {
+      if (additionalMetaData.isFirstTime && data.primaryCategory === "Digital Textbook") {
         data.identifier = additionalMetaData.identifier;
       }
       instance.hierarchy[data.identifier] = {
         name: data.name,
-        contentType: data.contentType,
+        primaryCategory: data.primaryCategory,
         children: _.compact(
           _.map(data.children, function(child) {
             if (
               child.mimeType === "application/vnd.ekstep.content-collection" &&
-              (child.contentType === "TextBook" ||
-                child.contentType === "TextBookUnit")
+              (child.primaryCategory === "Digital Textbook" ||
+                child.primaryCategory === "Textbook Unit")
             ) {
               return child.identifier;
             }
           })
         ),
-        root: data.contentType === "TextBook" ? true : false
+        root: data.primaryCategory === "Digital Textbook" ? true : false
       };
     }
     _.forEach(data.children, child => {
       if (
-        child.contentType === "TextBookUnit" ||
-        child.contentType === "TextBook"
+        child.primaryCategory === "Textbook Unit" ||
+        child.primaryCategory === "Digital Textbook"
       ) {
         instance.getFlatHierarchyObj(child, additionalMetaData, children);
       }
@@ -243,7 +243,7 @@ class HierarchyService {
     let instance = this;
     let nodeId;
     if (data) {
-      if (additionalMetaData.isFirstTime && data.contentType === "TextBook") {
+      if (additionalMetaData.isFirstTime && data.primaryCategory === "Digital Textbook") {
         nodeId = additionalMetaData.identifier;
       } else {
         nodeId = data.identifier;
@@ -251,7 +251,7 @@ class HierarchyService {
 
       instance.nodeModified[nodeId] = {
         isNew: true,
-        root: data.contentType === "TextBook" ? true : false,
+        root: data.primaryCategory === "Digital Textbook" ? true : false,
         metadata: {
           ..._.omit(data, [
             "children",
@@ -272,7 +272,7 @@ class HierarchyService {
             "idealScreenDensity",
             "depth"
           ]),
-          ...(data.contentType === "TextBook" && {
+          ...(data.primaryCategory === "Digital Textbook" && {
             chapterCount : data.children ? data.children.length : 0
           }),
           programId: additionalMetaData.programId,
@@ -284,15 +284,15 @@ class HierarchyService {
           }
         }
       };
-      if(data.contentType !== "TextBook" && instance.nodeModified[nodeId].metadata && instance.nodeModified[nodeId].metadata.audience) {
+      if(data.primaryCategory !== "Digital Textbook" && instance.nodeModified[nodeId].metadata && instance.nodeModified[nodeId].metadata.audience) {
         delete instance.nodeModified[nodeId].metadata.audience;
       }
     }
 
     _.forEach(data.children, child => {
       if (
-        child.contentType === "TextBookUnit" ||
-        child.contentType === "TextBook"
+        child.primaryCategory === "Textbook Unit" ||
+        child.primaryCategory === "Digital Textbook"
       ) {
         instance.getFlatNodesModified(child, additionalMetaData, children);
       }
