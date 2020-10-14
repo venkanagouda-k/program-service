@@ -270,7 +270,8 @@ class HierarchyService {
             "contentDisposition",
             "os",
             "idealScreenDensity",
-            "depth"
+            "depth",
+            "index"
           ]),
           ...(data.contentType === "TextBook" && {
             chapterCount : data.children ? data.children.length : 0
