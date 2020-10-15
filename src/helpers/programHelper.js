@@ -12,7 +12,9 @@ const programMessages = messageUtils.PROGRAM;
 const logger = require('sb_logger_util_v2');
 const { retry } = require("rxjs/operators");
 const HierarchyService = require('./updateHierarchy.helper');
-const hierarchyService = new HierarchyService()
+const RegistryService = require('../service/registryService');
+const hierarchyService = new HierarchyService();
+const registryService = new RegistryService();
 
 class ProgramServiceHelper {
   searchContent(programId, sampleContentCheck, reqHeaders) {
@@ -799,6 +801,76 @@ class ProgramServiceHelper {
     }
 
     return from(axios(req));
+  }
+
+  /**
+   * Update the user profile with medium, subject and gradeLevel
+   *
+   * @param integer program_id  Program id
+   * @param integer user_id     User id
+   */
+  async onAfterAddNomination(program_id, user_id) {
+    const program = await this.getProgramDetails(program_id);
+    const value = {};
+    value['body'] = {
+      "id": "open-saber.registry.search",
+      "request": {
+          "entityType":["User"],
+          "filters": {
+            "userId": {
+                "contains": user_id
+            }
+        }
+      }
+    };
+
+    registryService.searchRecord(value, (err, res) => {
+      if (!err && res) {
+        const user = _.first(res.data.result.User);
+        const updateRequestBody = {};
+        updateRequestBody['body'] = {
+          "id": "open-saber.registry.update",
+          "ver": "1.0",
+          "request": {
+            "User": {
+              "osid": user.osid,
+              "medium": _.union(user.medium, program.config.medium),
+              "gradeLevel": _.union(user.gradeLevel, program.config.gradeLevel),
+              "subject": _.union(user.subject, program.config.subject)
+              }
+          }
+        };
+        registryService.updateRecord(updateRequestBody, (error, response) => {
+          if (!error && response) {
+            return response;
+          } else {
+            return error;
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Sort the program based on medium, subject, gradeLevel and program created date
+   *
+   * @param array  programs  List of programs
+   * @param object sort      Sort by options
+   */
+  sortPrograms(programs, sort) {
+    _.map(programs, program => {
+      program.matchCount =  _.intersection(JSON.parse(program.medium), sort.medium).length
+        + _.intersection(JSON.parse(program.gradeLevel), sort.gradeLevel).length
+        + _.intersection(JSON.parse(program.subject), sort.subject).length;
+      return program;
+    });
+
+    /**
+     * Sort by descending order
+     * 1. Sum of matching medium, subject and gradeLevel and
+     * 2. program created date
+     */
+    return _(programs).chain().sortBy((prg) => prg.createdon).sortBy((prg) => prg.matchCount).values().reverse();
   }
 }
 
