@@ -433,7 +433,8 @@ class ProgramServiceHelper {
       this.collectionData['count'] = this.acceptedContents.length;
       this.collectionData['chapter'] = [];
       this.recursive = true;
-    } else if (data.primaryCategory === 'Textbook Unit') {
+    } else if (data.mimeType === 'application/vnd.ekstep.content-collection'
+      && data.visibility === 'Parent') {
       if (data.parent === this.collectionData['identifier']) {
         const chapterObj = {
           name: data.name,
@@ -464,14 +465,14 @@ class ProgramServiceHelper {
 
   chapterLevelCount(object) {
     const self = this;
-    if (object.primaryCategory !== 'Digital Textbook'
-      && object.primaryCategory !== 'Textbook Unit'
+    if (object.mimeType !== 'application/vnd.ekstep.content-collection'
+      && object.visibility !== 'Parent'
       && _.includes(this.acceptedContents, object.identifier)) {
           this.contentData.push({name: object.primaryCategory});
     }
 
-    if (object.primaryCategory !== 'Digital Textbook'
-        && object.primaryCategory !== 'Textbook Unit'
+    if (object.mimeType !== 'application/vnd.ekstep.content-collection'
+        && object.visibility !== 'Parent'
         && (object.status === 'Live' || (object.status === 'Draft' && object.prevStatus === 'Live'))) {
           this.contentsContributed.push(object.identifier);
           if (_.includes(this.acceptedContents, object.identifier)
