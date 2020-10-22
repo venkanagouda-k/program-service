@@ -25,6 +25,10 @@ function getPublishContentEvent(metadata, textbookId, units) {
     if(_.isString(metadata.plugins)) {
       metadata.plugins = JSON.parse(metadata.plugins);
     }
+    var originData = {};
+    if(metadata.originData){
+      originData = metadata.originData;
+    }
     metadata = _.omit(metadata, [
       "downloadUrl",
       "variants",
@@ -63,6 +67,7 @@ function getPublishContentEvent(metadata, textbookId, units) {
         'iteration': 1,
         'objectType': 'Content',
         'repository': `${envVariables.baseURL}/api/content/v1/read/${metadata.identifier}`,
+        "originData": originData,
         'metadata': metadata,
         'textbookInfo': {
           'identifier': textbookId,

@@ -4,7 +4,7 @@ const envVariables = require("../envVariables");
 const axios = require("axios");
 
 class HierarchyService {
-  filterExistingTextbooks(collectionIds, reqHeaders) {
+  filterExistingTextbooks(collectionIds, programId, reqHeaders) {
     const url = `${envVariables.baseURL}/api/composite/v1/search`;
     const filterRequest = _.map(collectionIds, id => {
       const option = {
@@ -17,7 +17,9 @@ class HierarchyService {
               objectType: "collection",
               status: ["Draft", "Live"],
               identifier: id,
-              primaryCategory: "Digital Textbook"
+              primaryCategory: "Digital Textbook",
+              origin: id,
+              programId,
             }
           }
         }
@@ -128,7 +130,7 @@ class HierarchyService {
       _.filter(collections, r => {
         return r.result.count === 0;
       }),
-      tb => JSON.parse(tb.config).request.filters.identifier
+      tb => JSON.parse(tb.config).request.filters.origin
     );
   }
 
@@ -270,7 +272,8 @@ class HierarchyService {
             "contentDisposition",
             "os",
             "idealScreenDensity",
-            "depth"
+            "depth",
+            "index"
           ]),
           ...(data.primaryCategory === "Digital Textbook" && {
             chapterCount : data.children ? data.children.length : 0

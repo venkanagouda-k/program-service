@@ -13,6 +13,7 @@
     "better-config": "^1.2.3",
     "bluebird": "^3.7.2",
     "cassandra-driver": "^4.4.0",
+    "chai-sorted": "^0.2.0",
     "compression": "^1.7.4",
     "cookie-parser": "~1.4.4",
     "dateformat": "^3.0.3",
